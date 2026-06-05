@@ -1,0 +1,337 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet"><title>Sapphire v2 — 分類體系</title><style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1c1e22;--mut:#6b7280;--line:#e5e7eb}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans CJK TC",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}.wrap{max-width:1020px;margin:0 auto;padding:28px 20px 80px}h1{font-size:25px;margin:0 0 4px}.sub{color:var(--mut);font-size:14px;margin-bottom:20px}.principle{background:#fff7ed;border-left:4px solid #D9663B;padding:12px 16px;border-radius:6px;font-size:14px;margin-bottom:24px}.bars{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:28px}.bar{display:flex;align-items:center;gap:10px;margin:6px 0;font-size:13px}.bar .lbl{width:240px;flex-shrink:0}.bar .lbl b{font-family:ui-monospace,monospace}.bar .track{flex:1;background:#eef0f3;border-radius:5px;height:18px}.bar .fill{height:100%;border-radius:5px}.bar .n{width:66px;text-align:right;flex-shrink:0;color:var(--mut)}.cat{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:16px;overflow:hidden}.cat>summary{cursor:pointer;padding:14px 18px;font-size:17px;font-weight:700;display:flex;align-items:center;gap:10px;list-style:none}.cat>summary::-webkit-details-marker{display:none}.cat>summary .dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}.cat>summary .cnt{margin-left:auto;font-size:13px;font-weight:600;color:#fff;border-radius:20px;padding:2px 10px}.cat>summary .cdesc{font-weight:400;font-size:13px;color:var(--mut)}.catbody{padding:4px 18px 16px}.subsec{margin:14px 0 4px}.subhead{font-weight:600;font-size:14px}.subhead .scode{font-family:ui-monospace,monospace;font-size:12px;background:#eef0f3;padding:1px 6px;border-radius:4px;margin-right:6px}.subhead .sn{color:var(--mut);font-weight:400;font-size:12px;margin-left:6px}ul.papers{margin:6px 0 0;padding-left:0;list-style:none}ul.papers li{font-size:13px;padding:3px 0;border-bottom:1px solid #f1f2f4;display:flex;gap:8px;align-items:baseline}ul.papers li .pid{font-family:ui-monospace,monospace;font-size:11px;color:#9aa0a8;flex-shrink:0;width:78px}ul.papers li .cite{font-size:11px;color:#b59a3b;flex-shrink:0;margin-left:auto}ul.papers li.med .pt::after{content:" ⚠";color:#c97a1e}.foot{color:var(--mut);font-size:12px;margin-top:30px;text-align:center}
+</style></head><body><div class="wrap">
+<h1>Sapphire v2 · LLM 大型代碼庫修改與維護</h1>
+<div class="sub">分類體系 taxonomy v2 · 244 篇 · 8 大類 × 30 sub · high 信心 217 / medium 27</div>
+<div class="principle"><b>核心分類原則</b>：agent 是當今標配「交付機制」，不是分類軸。一篇有具體技術貢獻就歸技術類；A 只留「唯一新貢獻是 agent 編排架構本身」的論文。</div>
+<div class="bars"><div style="font-weight:700;margin-bottom:10px">規模分布</div>
+<div class="bar"><div class="lbl"><b>F</b> Benchmarks & Evaluation</div><div class="track"><div class="fill" style="width:100%;background:#C9A93B"></div></div><div class="n">63 (25%)</div></div>
+<div class="bar"><div class="lbl"><b>B</b> Localization / Retrieval / Context</div><div class="track"><div class="fill" style="width:80%;background:#8A4FB8"></div></div><div class="n">51 (20%)</div></div>
+<div class="bar"><div class="lbl"><b>H</b> Empirical Studies & Surveys</div><div class="track"><div class="fill" style="width:50%;background:#777"></div></div><div class="n">32 (13%)</div></div>
+<div class="bar"><div class="lbl"><b>C</b> Migration & Translation</div><div class="track"><div class="fill" style="width:44%;background:#4FA85F"></div></div><div class="n">28 (11%)</div></div>
+<div class="bar"><div class="lbl"><b>G</b> 特定維護任務</div><div class="track"><div class="fill" style="width:39%;background:#5BA8B8"></div></div><div class="n">25 (10%)</div></div>
+<div class="bar"><div class="lbl"><b>D</b> Program Repair 技術</div><div class="track"><div class="fill" style="width:28%;background:#C94F88"></div></div><div class="n">18 (7%)</div></div>
+<div class="bar"><div class="lbl"><b>E</b> SWE Model Training & Data</div><div class="track"><div class="fill" style="width:25%;background:#5B7BC9"></div></div><div class="n">16 (6%)</div></div>
+<div class="bar"><div class="lbl"><b>A</b> Issue Resolution Agents</div><div class="track"><div class="fill" style="width:17%;background:#D9663B"></div></div><div class="n">11 (4%)</div></div>
+</div>
+<details class="cat" open><summary><span class="dot" style="background:#C9A93B"></span><span>F — Benchmarks & Evaluation</span><span class="cdesc">以「評測」為主軸</span><span class="cnt" style="background:#C9A93B">63</span></summary><div class="catbody">
+<div class="subsec"><div class="subhead"><span class="scode">F1</span>Issue resolution benchmark<span class="sn">17 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2504.08703</span><span class="pt">SWE-PolyBench: A multi-language benchmark for repository level evaluation of coding agents</span><span class="cite">lc13/gc55</span></li>
+<li class=""><span class="pid">2511.05459</span><span class="pt">SWE-Compass: Towards Unified Evaluation of Agentic Coding Abilities for Large Language Models</span><span class="cite">lc4/gc5</span></li>
+<li class=""><span class="pid">2506.10954</span><span class="pt">SWE Data Construction, Automatically!</span><span class="cite">lc4/gc0</span></li>
+<li class=""><span class="pid">2507.00014</span><span class="pt">SWE-Bench-CL: Continual Learning for Coding Agents</span><span class="cite">lc3/gc8</span></li>
+<li class=""><span class="pid">2505.04606</span><span class="pt">OmniGIRL: A Multilingual and Multimodal Benchmark for GitHub Issue Resolution</span><span class="cite">lc2/gc23</span></li>
+<li class=""><span class="pid">2512.17419</span><span class="pt">SWE-Bench++: A Framework for the Scalable Generation of Software Engineering Benchmarks from Open-Source Repositories</span><span class="cite">lc2/gc15</span></li>
+<li class=""><span class="pid">2507.11059</span><span class="pt">SWE-MERA: A Dynamic Benchmark for Agenticly Evaluating Large Language Models on Software Engineering Tasks</span><span class="cite">lc2/gc2</span></li>
+<li class=""><span class="pid">2507.10646</span><span class="pt">CodeAssistBench (CAB): Dataset &amp; Benchmarking for Multi-turn Chat-Based Code Assistance</span><span class="cite">lc1/gc5</span></li>
+<li class=""><span class="pid">2505.20411</span><span class="pt">SWE-rebench: An Automated Pipeline for Task Collection and Decontaminated Evaluation of Software Engineering Agents</span><span class="cite">lc0/gc62</span></li>
+<li class=""><span class="pid">2408.14354</span><span class="pt">SWE-bench-java: A GitHub Issue Resolving Benchmark for Java</span><span class="cite">lc0/gc43</span></li>
+<li class=" med"><span class="pid">2501.07531</span><span class="pt">Evaluating Agent-based Program Repair at Google</span><span class="cite">lc0/gc37</span></li>
+<li class=""><span class="pid">2603.03823</span><span class="pt">SWE-CI: Evaluating Agent Capabilities in Maintaining Codebases via Continuous Integration</span><span class="cite">lc0/gc7</span></li>
+<li class=" med"><span class="pid">2602.22764</span><span class="pt">Evaluating and Improving Automated Repository-Level Rust Issue Resolution with LLM-based Agents</span><span class="cite">lc0/gc4</span></li>
+<li class=""><span class="pid">2603.26337</span><span class="pt">A Benchmark for Evaluating Repository-Level Code Agents with Intermediate Reasoning on Feature Addition Task</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2604.27148</span><span class="pt">CI-Repair-Bench: A Repository-Aware Benchmark for Automated Patch Validation via CI Workflows</span></li>
+<li class=""><span class="pid">2603.24946</span><span class="pt">MobileDev-Bench: A Benchmark for Issue Resolution in Mobile Application Development</span></li>
+<li class=""><span class="pid">2604.05955</span><span class="pt">Does Pass Rate Tell the Whole Story? Evaluating Design Constraint Compliance in LLM-based Issue Resolution</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">F2</span>任務專門 benchmark<span class="sn">41 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2507.12415</span><span class="pt">SWE-Perf: Can Language Models Optimize Code Performance on Real-World Repositories?</span><span class="cite">lc6/gc21</span></li>
+<li class=""><span class="pid">2509.14635</span><span class="pt">SWE-QA: Can Language Models Answer Repository-level Code Questions?</span><span class="cite">lc3/gc25</span></li>
+<li class=""><span class="pid">2511.06090</span><span class="pt">SWE-fficiency: Can Language Models Optimize Real-World Repositories on Real Workloads?</span><span class="cite">lc3/gc6</span></li>
+<li class=""><span class="pid">2508.18106</span><span class="pt">A.S.E: A Repository-Level Benchmark for Evaluating Security in AI-Generated Code</span><span class="cite">lc1/gc7</span></li>
+<li class=""><span class="pid">2602.03712</span><span class="pt">SWE-Refactor: A Repository-Level Benchmark for Real-World LLM-Based Code Refactoring</span><span class="cite">lc1/gc6</span></li>
+<li class=""><span class="pid">2509.18808</span><span class="pt">SR-Eval: Evaluating LLMs on Code Generation under Stepwise Requirement Refinement</span><span class="cite">lc1/gc6</span></li>
+<li class=""><span class="pid">2509.14856</span><span class="pt">CodeFuse-CR-Bench: A Comprehensiveness-aware Benchmark for End-to-End Code Review Evaluation in Python Projects</span><span class="cite">lc1/gc5</span></li>
+<li class=""><span class="pid">2601.03731</span><span class="pt">From Laboratory to Real-World Applications: Benchmarking Agentic Code Reasoning at the Repository Level</span><span class="cite">lc1/gc4</span></li>
+<li class=""><span class="pid">2509.22237</span><span class="pt">FeatBench: Towards More Realistic Evaluation of Feature-level Code Generation</span><span class="cite">lc1/gc4</span></li>
+<li class=""><span class="pid">2508.02998</span><span class="pt">MRG-Bench: Evaluating and Exploring the Requirements of Context for Repository-Level Code Generation</span><span class="cite">lc1/gc3</span></li>
+<li class=""><span class="pid">2406.12952</span><span class="pt">SWT-Bench: Testing and Validating Real-World Bug-Fixes with Code Agents</span><span class="cite">lc0/gc128</span></li>
+<li class=""><span class="pid">2405.19856</span><span class="pt">DevEval: A Manually-Annotated Code Generation Benchmark Aligned with Real-World Code Repositories</span><span class="cite">lc0/gc103</span></li>
+<li class=""><span class="pid">2401.13169</span><span class="pt">ReposVul: A Repository-Level High-Quality Vulnerability Dataset</span><span class="cite">lc0/gc69</span></li>
+<li class=""><span class="pid">2311.09835</span><span class="pt">ML-Bench: Evaluating Large Language Models and Agents for Machine Learning Tasks on Repository-Level Code</span><span class="cite">lc0/gc53</span></li>
+<li class=""><span class="pid">2503.06680</span><span class="pt">FEA-Bench: A Benchmark for Evaluating Repository-Level Code Generation for Feature Implementation</span><span class="cite">lc0/gc45</span></li>
+<li class=""><span class="pid">2503.03586</span><span class="pt">Benchmarking LLMs and LLM-based Agents in Practical Vulnerability Detection for Code Repositories</span><span class="cite">lc0/gc41</span></li>
+<li class=""><span class="pid">2603.15401</span><span class="pt">SWE-Skills-Bench: Do Agent Skills Actually Help in Real-World Software Engineering?</span><span class="cite">lc0/gc20</span></li>
+<li class=""><span class="pid">2406.11927</span><span class="pt">On the Impacts of Contexts on Repository-Level Code Generation</span><span class="cite">lc0/gc20</span></li>
+<li class=""><span class="pid">2406.07411</span><span class="pt">VersiCode: Towards Version-Controllable Code Generation</span><span class="cite">lc0/gc20</span></li>
+<li class=""><span class="pid">2508.18993</span><span class="pt">GitTaskBench: A Benchmark for Code Agents Solving Real-World Tasks Through Code Repository Leveraging</span><span class="cite">lc0/gc17</span></li>
+<li class=""><span class="pid">2501.03447</span><span class="pt">CoReQA: Uncovering Potentials of Language Models in Code Repository Question Answering</span><span class="cite">lc0/gc17</span></li>
+<li class=""><span class="pid">2503.06689</span><span class="pt">DependEval: Benchmarking LLMs for Repository Dependency Understanding</span><span class="cite">lc0/gc15</span></li>
+<li class=""><span class="pid">2406.16801</span><span class="pt">RES-Q: Evaluating Code-Editing Large Language Model Systems at the Repository Scale</span><span class="cite">lc0/gc12</span></li>
+<li class=""><span class="pid">2412.14764</span><span class="pt">CodeRepoQA: A Large-scale Benchmark for Software Engineering Question Answering</span><span class="cite">lc0/gc10</span></li>
+<li class=""><span class="pid">2502.06994</span><span class="pt">SyncMind: Measuring Agent Out-of-Sync Recovery in Collaborative Software Engineering</span><span class="cite">lc0/gc7</span></li>
+<li class=""><span class="pid">2509.04078</span><span class="pt">RepoDebug: Repository-Level Multi-Task and Multi-Language Debugging Evaluation of Large Language Models</span><span class="cite">lc0/gc4</span></li>
+<li class=""><span class="pid">2501.09745</span><span class="pt">Suggesting Code Edits in Interactive Machine Learning Notebooks Using Large Language Models</span><span class="cite">lc0/gc3</span></li>
+<li class=""><span class="pid">2507.22086</span><span class="pt">TypyBench: Evaluating LLM Type Inference for Untyped Python Repositories</span><span class="cite">lc0/gc3</span></li>
+<li class=""><span class="pid">2501.09888</span><span class="pt">Understanding the Effectiveness of LLMs in Automated Self-Admitted Technical Debt Repayment</span><span class="cite">lc0/gc2</span></li>
+<li class=""><span class="pid">2603.16011</span><span class="pt">FormulaCode: Evaluating Agentic Optimization on Large Codebases</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2601.19494</span><span class="pt">AACR-Bench: Evaluating Automatic Code Review with Holistic Repository-Level Context</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2601.11077</span><span class="pt">ABC-Bench: Benchmarking Agentic Backend Coding in Real-World Development</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2604.17529</span><span class="pt">Single-Language Evidence Is Insufficient for Automated Logging: A Multilingual Benchmark and Empirical Study with LLMs</span></li>
+<li class=""><span class="pid">2605.29277</span><span class="pt">Code-QA-Bench: Separating Code Reasoning from Documentation Memorization in Repository-Level QA</span></li>
+<li class=""><span class="pid">2603.26567</span><span class="pt">Beyond Code Snippets: Benchmarking LLMs on Repository-Level Question Answering</span></li>
+<li class=""><span class="pid">2507.05281</span><span class="pt">CoreCodeBench: Decoupling Code Intelligence via Fine-Grained Repository-Level Tasks</span></li>
+<li class=""><span class="pid">2601.18241</span><span class="pt">TAM-Eval: Evaluating LLMs for Automated Unit Test Maintenance</span></li>
+<li class=""><span class="pid">2603.25770</span><span class="pt">ReCUBE: Evaluating Repository-Level Context Utilization in Code Generation</span></li>
+<li class=""><span class="pid">2410.21647</span><span class="pt">Can Language Models Replace Programmers for Coding? RepoCod Says 'Not Yet'</span></li>
+<li class=""><span class="pid">2604.06793</span><span class="pt">Evaluating Repository-level Software Documentation via Question Answering and Feature-Driven Development</span></li>
+<li class=""><span class="pid">2603.04177</span><span class="pt">CODETASTE: Can LLMs Generate Human-Level Code Refactorings?</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">F3</span>Benchmark 品質/污染研究<span class="sn">3 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2506.09289</span><span class="pt">UTBoost: Rigorous Evaluation of Coding Agents on SWE-Bench</span><span class="cite">lc3/gc26</span></li>
+<li class=""><span class="pid">2410.06992</span><span class="pt">SWE-Bench+: Enhanced Coding Benchmark for LLMs</span><span class="cite">lc0/gc83</span></li>
+<li class=" med"><span class="pid">2510.00324</span><span class="pt">Which Programming Language and Model Work Best With LLM-as-a-Judge For Code Retrieval?</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">F4</span>評測框架/工具<span class="sn">2 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2504.08696</span><span class="pt">SEAVIEW: Software Engineering Agent Visual Interface for Enhanced Workflow</span><span class="cite">lc0/gc2</span></li>
+<li class=""><span class="pid">2603.17833</span><span class="pt">ArchBench: Benchmarking Generative-AI for Software Architecture Tasks</span></li>
+</ul></div>
+</div></details>
+<details class="cat" open><summary><span class="dot" style="background:#8A4FB8"></span><span>B — Localization / Retrieval / Context</span><span class="cdesc">「找對 code」的技術：定位/檢索/上下文/記憶</span><span class="cnt" style="background:#8A4FB8">51</span></summary><div class="catbody">
+<div class="subsec"><div class="subhead"><span class="scode">B1</span>Code graphs<span class="sn">18 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2406.01422</span><span class="pt">Alibaba LingmaAgent: Improving Automated Issue Resolution via Comprehensive Repository Exploration</span><span class="cite">lc12/gc60</span></li>
+<li class=""><span class="pid">2505.16901</span><span class="pt">Code Graph Model (CGM): A Graph-Integrated Large Language Model for Repository-Level Software Engineering Tasks</span><span class="cite">lc8/gc27</span></li>
+<li class=""><span class="pid">2509.05980</span><span class="pt">GRACE: Graph-Guided Repository-Aware Code Completion through Hierarchical Code Fusion</span><span class="cite">lc3/gc3</span></li>
+<li class=""><span class="pid">2512.20957</span><span class="pt">One Tool Is Enough: Reinforcement Learning of LLM Agents for Repository-Level Code Navigation</span><span class="cite">lc3/gc1</span></li>
+<li class=""><span class="pid">2511.16005</span><span class="pt">InfCode-C++: Intent-Guided Semantic Retrieval and AST-Structured Search for C++ Issue Resolution</span><span class="cite">lc2/gc4</span></li>
+<li class=""><span class="pid">2505.21577</span><span class="pt">RepoMaster: Autonomous Exploration and Understanding of GitHub Repositories for Complex Task Solving</span><span class="cite">lc1/gc20</span></li>
+<li class=""><span class="pid">2509.25257</span><span class="pt">RANGER: Repository-Level Agent for Graph-Enhanced Retrieval</span><span class="cite">lc1/gc4</span></li>
+<li class=" med"><span class="pid">2603.01327</span><span class="pt">SWE-Adept: An LLM-Based Agentic Framework for Deep Codebase Analysis and Structured Issue Resolution</span><span class="cite">lc1/gc2</span></li>
+<li class=" med"><span class="pid">2603.11356</span><span class="pt">Resolving Java Code Repository Issues with iSWE Agent</span><span class="cite">lc1/gc1</span></li>
+<li class=""><span class="pid">2404.05427</span><span class="pt">AutoCodeRover: Autonomous Program Improvement</span><span class="cite">lc0/gc229</span></li>
+<li class=""><span class="pid">2410.14684</span><span class="pt">RepoGraph: Enhancing AI Software Engineering with Repository-level Code Graph</span><span class="cite">lc0/gc84</span></li>
+<li class=""><span class="pid">2503.09089</span><span class="pt">LocAgent: Graph-Guided LLM Agents for Code Localization</span><span class="cite">lc0/gc64</span></li>
+<li class=""><span class="pid">2406.07003</span><span class="pt">GraphCoder: Enhancing Repository-Level Code Completion via Code Context Graph-based Retrieval and Language Model</span><span class="cite">lc0/gc52</span></li>
+<li class=""><span class="pid">2503.21710</span><span class="pt">Enhancing repository-level software repair via repository-aware knowledge graphs</span><span class="cite">lc0/gc37</span></li>
+<li class=""><span class="pid">2505.14394</span><span class="pt">Knowledge Graph Based Repository-Level Code Generation</span><span class="cite">lc0/gc6</span></li>
+<li class=""><span class="pid">2605.03117</span><span class="pt">ARISE: A Repository-level Graph Representation and Toolset for Agentic Fault Localization and Program Repair</span></li>
+<li class=""><span class="pid">2512.08492</span><span class="pt">Autonomous Issue Resolver: Towards Zero-Touch Code Maintenance</span></li>
+<li class=""><span class="pid">2601.05539</span><span class="pt">LIDL: LLM Integration Defect Localization via Knowledge Graph-Enhanced Multi-Agent Analysis</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">B2</span>Retrieval / RAG<span class="sn">17 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2505.07849</span><span class="pt">SweRank: Software Issue Localization with Code Ranking</span><span class="cite">lc4/gc14</span></li>
+<li class=""><span class="pid">2601.23254</span><span class="pt">GrepRAG: An Empirical Study and Optimization of Grep-Like Retrieval for Code Completion</span><span class="cite">lc1/gc4</span></li>
+<li class=""><span class="pid">2507.14791</span><span class="pt">RepoScope: Leveraging Call Chain-Aware Multi-View Context for Repository-Level Code Generation</span><span class="cite">lc1/gc2</span></li>
+<li class=""><span class="pid">2601.19697</span><span class="pt">AlignCoder: Aligning Retrieval with Target Intent for Repository-Level Code Completion</span><span class="cite">lc1/gc2</span></li>
+<li class=" med"><span class="pid">2403.00448</span><span class="pt">When Large Language Models Confront Repository-Level Automatic Program Repair: How Well They Done?</span><span class="cite">lc0/gc32</span></li>
+<li class=""><span class="pid">2503.20589</span><span class="pt">What to Retrieve for Effective Retrieval-Augmented Code Generation? An Empirical Study and Beyond</span><span class="cite">lc0/gc18</span></li>
+<li class=""><span class="pid">2408.11058</span><span class="pt">LLM Agents Improve Semantic Code Search</span><span class="cite">lc0/gc12</span></li>
+<li class=" med"><span class="pid">2507.09199</span><span class="pt">Back to the Basics: Rethinking Issue-Commit Linking with LLM-Assisted Retrieval</span><span class="cite">lc0/gc4</span></li>
+<li class=" med"><span class="pid">2409.11190</span><span class="pt">SuperCoder2.0: Technical Report on Exploring the feasibility of LLMs as Autonomous Programmer</span><span class="cite">lc0/gc4</span></li>
+<li class=""><span class="pid">2502.07067</span><span class="pt">Repository-level Code Search with Neural Retrieval Methods</span><span class="cite">lc0/gc4</span></li>
+<li class=""><span class="pid">2406.04464</span><span class="pt">On The Importance of Reasoning for Context Retrieval in Repository-Level Code Editing</span><span class="cite">lc0/gc3</span></li>
+<li class=""><span class="pid">2507.03226</span><span class="pt">Towards Practical GraphRAG: Efficient Knowledge Graph Construction and Hybrid Retrieval at Scale</span><span class="cite">lc0/gc3</span></li>
+<li class=""><span class="pid">2505.24715</span><span class="pt">CoRet: Improved Retriever for Code Editing</span><span class="cite">lc0/gc2</span></li>
+<li class=""><span class="pid">2512.05908</span><span class="pt">Natural Language Summarization Enables Multi-Repository Bug Localization by LLMs in Microservice Architectures</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2605.02421</span><span class="pt">AOCI: Symbolic-Semantic Indexing for Practical Repository-Scale Code Understanding with LLMs</span></li>
+<li class=""><span class="pid">2605.17965</span><span class="pt">BLAgent: Agentic RAG for File-Level Bug Localization</span></li>
+<li class=""><span class="pid">2507.01315</span><span class="pt">Wired for Reuse: Automating Context-Aware Code Adaptation in IDEs via LLM-Based Agent</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">B3</span>Memory 機制<span class="sn">7 篇</span></div><ul class="papers">
+<li class=" med"><span class="pid">2507.19942</span><span class="pt">Prometheus: Towards Long-Horizon Codebase Navigation for Repository-Level Problem Solving</span><span class="cite">lc8/gc9</span></li>
+<li class=" med"><span class="pid">2510.11838</span><span class="pt">Lingxi: Repository-Level Issue Resolution Framework Enhanced by Procedural Knowledge Guided Scaling</span><span class="cite">lc3/gc5</span></li>
+<li class=""><span class="pid">2510.01003</span><span class="pt">Improving Code Localization with Repository Memory</span><span class="cite">lc2/gc7</span></li>
+<li class=" med"><span class="pid">2512.22087</span><span class="pt">Context as a Tool: Context Management for Long-Horizon SWE-Agents</span><span class="cite">lc1/gc16</span></li>
+<li class=""><span class="pid">2601.02868</span><span class="pt">CODEMEM: AST-Guided Adaptive Memory for Repository-Level Iterative Code Generation</span><span class="cite">lc1/gc1</span></li>
+<li class=" med"><span class="pid">2505.23422</span><span class="pt">From Knowledge to Noise: CTIM-Rover and the Pitfalls of Episodic Memory in Software Engineering Agents</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2508.03340</span><span class="pt">Key-Augmented Neural Triggers for Knowledge Sharing</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">B4</span>Repo-level completion / generation<span class="sn">9 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2601.00376</span><span class="pt">In Line with Context: Repository-Level Code Generation via Context Inlining</span><span class="cite">lc2/gc8</span></li>
+<li class=" med"><span class="pid">2511.07584</span><span class="pt">SemanticForge: Repository-Level Code Generation through Semantic Knowledge Graphs and Constraint Satisfaction</span><span class="cite">lc1/gc7</span></li>
+<li class=""><span class="pid">2510.19644</span><span class="pt">CoRoVA: Compressed Representations for Vector-Augmented Code Completion</span><span class="cite">lc1/gc1</span></li>
+<li class=""><span class="pid">2401.07339</span><span class="pt">CodeAgent: Enhancing Code Generation with Tool-Integrated Agent Systems for Real-World Repo-level Coding Challenges</span><span class="cite">lc0/gc299</span></li>
+<li class=" med"><span class="pid">2405.01573</span><span class="pt">Class-Level Code Generation from Natural Language Using Iterative, Tool-Enhanced Reasoning over Repository</span><span class="cite">lc0/gc13</span></li>
+<li class=""><span class="pid">2509.16112</span><span class="pt">CodeRAG: Finding Relevant and Necessary Knowledge for Retrieval-Augmented Repository-Level Code Completion</span><span class="cite">lc0/gc8</span></li>
+<li class=""><span class="pid">2509.24148</span><span class="pt">TENET: Leveraging Tests Beyond Validation for Code Generation</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2604.03622</span><span class="pt">Toward Executable Repository-Level Code Generation via Environment Alignment</span></li>
+<li class=""><span class="pid">2604.03632</span><span class="pt">Persistent Cross-Attempt State Optimization for Repository-Level Code Generation</span></li>
+</ul></div>
+</div></details>
+<details class="cat"><summary><span class="dot" style="background:#777"></span><span>H — Empirical Studies & Surveys</span><span class="cdesc">研究現象而非提方法</span><span class="cnt" style="background:#777">32</span></summary><div class="catbody">
+<div class="subsec"><div class="subhead"><span class="scode">H1</span>Surveys<span class="sn">8 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2510.09721</span><span class="pt">A Comprehensive Survey on Benchmarks and Solutions in Software Engineering of LLM-Empowered Agentic System</span><span class="cite">lc3/gc11</span></li>
+<li class=""><span class="pid">2510.04905</span><span class="pt">Retrieval-Augmented Code Generation: A Survey with Focus on Repository-Level Approaches</span><span class="cite">lc2/gc19</span></li>
+<li class=""><span class="pid">2512.22256</span><span class="pt">Agentic Software Issue Resolution with Large Language Models: A Survey</span><span class="cite">lc2/gc4</span></li>
+<li class=""><span class="pid">2601.11655</span><span class="pt">Advances and Frontiers of LLM-based Issue Resolution in Software Engineering: A Comprehensive Survey</span><span class="cite">lc1/gc7</span></li>
+<li class=""><span class="pid">2312.15223</span><span class="pt">A Survey on Large Language Models for Software Engineering</span><span class="cite">lc0/gc124</span></li>
+<li class=""><span class="pid">2502.07049</span><span class="pt">LLMs in Software Security: A Survey of Vulnerability Detection Techniques and Insights</span><span class="cite">lc0/gc76</span></li>
+<li class=""><span class="pid">2409.09030</span><span class="pt">Agents in Software Engineering: Survey, Landscape, and Vision</span><span class="cite">lc0/gc71</span></li>
+<li class=""><span class="pid">2604.26275</span><span class="pt">Agentic AI in the Software Development Lifecycle: Architecture, Empirical Evidence, and the Reshaping of Software Engineering</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">H2</span>Agent 採用實證<span class="sn">9 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2509.14745</span><span class="pt">On the Use of Agentic Coding: An Empirical Study of Pull Requests on GitHub</span><span class="cite">lc4/gc31</span></li>
+<li class=""><span class="pid">2511.04427</span><span class="pt">Speed at the Cost of Quality: How Cursor AI Increases Short-Term Velocity and Long-Term Complexity in Open-Source Projects</span><span class="cite">lc2/gc6</span></li>
+<li class=""><span class="pid">2601.18341</span><span class="pt">Agentic Much? Adoption of Coding Agents on GitHub</span><span class="cite">lc0/gc17</span></li>
+<li class=""><span class="pid">2601.18345</span><span class="pt">Promises, Perils, and (Timely) Heuristics for Mining Coding Agent Activity</span><span class="cite">lc0/gc7</span></li>
+<li class=""><span class="pid">2601.20404</span><span class="pt">On the Impact of AGENTS.md Files on the Efficiency of AI Coding Agents</span><span class="cite">lc0/gc6</span></li>
+<li class=""><span class="pid">2512.18567</span><span class="pt">AI Code in the Wild: Measuring Security Risks and Ecosystem Shifts of AI-Generated Code in Modern Software</span><span class="cite">lc0/gc2</span></li>
+<li class=""><span class="pid">2601.13597</span><span class="pt">AI IDEs or Autonomous Agents? Measuring the Impact of Coding Agents on Software Development</span><span class="cite">lc0/gc2</span></li>
+<li class=""><span class="pid">2412.18531</span><span class="pt">Automated Code Review In Practice</span></li>
+<li class=""><span class="pid">2512.21426</span><span class="pt">What Makes a GitHub Issue Ready for Copilot?</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">H3</span>Agent 安全實證<span class="sn">4 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2507.02976</span><span class="pt">How Safe Are AI-Generated Patches? A Large-scale Study on Security Risks in LLM and Agentic Automated Program Repair on SWE-bench</span><span class="cite">lc2/gc2</span></li>
+<li class=""><span class="pid">2601.17548</span><span class="pt">Prompt Injection Attacks on Agentic Coding Assistants: A Systematic Analysis of Vulnerabilities in Skills, Tools, and Protocol Ecosystems</span><span class="cite">lc0/gc12</span></li>
+<li class=""><span class="pid">2510.17862</span><span class="pt">When "Correct" Is Not Safe: Can We Trust Functionally Correct Patches Generated by Code Agents?</span><span class="cite">lc0/gc2</span></li>
+<li class=" med"><span class="pid">2605.07135</span><span class="pt">Demystifying and Detecting Agentic Workflow Injection Vulnerabilities in GitHub Actions</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">H4</span>過程/行為分析<span class="sn">11 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2503.12374</span><span class="pt">Beyond Final Code: A Process-Oriented Error Analysis of Software Development Agents in Real-World GitHub Scenarios</span><span class="cite">lc2/gc8</span></li>
+<li class=""><span class="pid">2511.21380</span><span class="pt">Multi-Agent Systems for Dataset Adaptation in Software Engineering: Capabilities, Limitations, and Future Directions</span><span class="cite">lc1/gc1</span></li>
+<li class=""><span class="pid">2409.20550</span><span class="pt">LLM Hallucinations in Practical Code Generation: Phenomena, Mechanism, and Mitigation</span><span class="cite">lc0/gc159</span></li>
+<li class=""><span class="pid">2410.12468</span><span class="pt">Evaluating Software Development Agents: Patch Patterns, Code Quality, and Issue Complexity in Real-World GitHub Scenarios</span><span class="cite">lc0/gc19</span></li>
+<li class=""><span class="pid">2602.07900</span><span class="pt">Rethinking the Value of Agent-Generated Tests for LLM-Based Software Engineering Agents</span><span class="cite">lc0/gc3</span></li>
+<li class=" med"><span class="pid">2602.06593</span><span class="pt">AgentStepper: Interactive Debugging of Software Development Agents</span><span class="cite">lc0/gc3</span></li>
+<li class=" med"><span class="pid">2602.10758</span><span class="pt">Hidden Licensing Risks in the LLMware Ecosystem</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2601.19287</span><span class="pt">Understanding Dominant Themes in Reviewing Agentic AI-authored Code</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2605.26563</span><span class="pt">TrajAudit: Automated Failure Diagnosis for Agentic Coding Systems</span></li>
+<li class=""><span class="pid">2605.06464</span><span class="pt">To What Extent Does Agent-generated Code Require Maintenance? An Empirical Study</span></li>
+<li class=""><span class="pid">2511.11012</span><span class="pt">Beyond Accuracy: Behavioral Dynamics of Agentic Multi-Hunk Repair</span></li>
+</ul></div>
+</div></details>
+<details class="cat"><summary><span class="dot" style="background:#4FA85F"></span><span>C — Migration & Translation</span><span class="cdesc">把既有 code 轉到另一語言/版本/框架</span><span class="cnt" style="background:#4FA85F">28</span></summary><div class="catbody">
+<div class="subsec"><div class="subhead"><span class="scode">C1</span>跨語言翻譯<span class="sn">9 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2511.20617</span><span class="pt">Translating Large-Scale C Repositories to Idiomatic Rust</span><span class="cite">lc3/gc9</span></li>
+<li class=""><span class="pid">2509.16187</span><span class="pt">MatchFixAgent: Language-Agnostic Autonomous Repository-Level Code Translation Validation and Repair</span><span class="cite">lc2/gc7</span></li>
+<li class=""><span class="pid">2511.21878</span><span class="pt">Advancing Automated In-Isolation Validation in Repository-Level Code Translation</span><span class="cite">lc2/gc4</span></li>
+<li class=""><span class="pid">2410.24117</span><span class="pt">AlphaTrans: A Neuro-Symbolic Compositional Approach for Repository-Level Code Translation and Validation</span><span class="cite">lc0/gc38</span></li>
+<li class=""><span class="pid">2507.16037</span><span class="pt">A Pilot Study on LLM-Based Agentic Translation from Android to iOS: Pitfalls and Insights</span><span class="cite">lc0/gc2</span></li>
+<li class=""><span class="pid">2412.19770</span><span class="pt">Fortran2CPP: Automating Fortran-to-C++ Translation using LLMs via Multi-Turn Dialogue and Dual-Agent Integration</span><span class="cite">lc0/gc2</span></li>
+<li class=""><span class="pid">2604.07341</span><span class="pt">ReCodeAgent: A Multi-Agent Workflow for Language-agnostic Translation and Validation of Large-scale Repositories</span><span class="cite">lc0/gc2</span></li>
+<li class=""><span class="pid">2503.18305</span><span class="pt">K³Trans: Evolving Triple Knowledge-Augmented LLMs for Code Translation in Repository Context</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2511.03866</span><span class="pt">OMPILOT: Harnessing Transformer Models for Auto Parallelization to Shared Memory Computing Paradigms</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">C2</span>版本/API 遷移 + legacy 現代化<span class="sn">9 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2309.12499</span><span class="pt">CodePlan: Repository-level Coding using LLMs and Planning</span><span class="cite">lc0/gc204</span></li>
+<li class=""><span class="pid">2501.06972</span><span class="pt">How is Google using AI for internal code migrations?</span><span class="cite">lc0/gc15</span></li>
+<li class=""><span class="pid">2501.19204</span><span class="pt">Autonomous Legacy Web Application Upgrades Using a Multi-Agent System</span><span class="cite">lc0/gc3</span></li>
+<li class=""><span class="pid">2510.18509</span><span class="pt">VAPU: System for Autonomous Legacy Code Modernization</span><span class="cite">lc0/gc3</span></li>
+<li class=""><span class="pid">2602.09944</span><span class="pt">Environment-in-the-Loop: Rethinking Code Migration with LLM-based Agents</span><span class="cite">lc0/gc2</span></li>
+<li class=""><span class="pid">2508.10517</span><span class="pt">Bridging Solidity Evolution Gaps: An LLM-Enhanced Approach for Smart Contract Compilation Error Resolution</span><span class="cite">lc0/gc2</span></li>
+<li class=""><span class="pid">2510.26699</span><span class="pt">Using Copilot Agent Mode to Automate Library Migration: A Quantitative Assessment</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2506.14535</span><span class="pt">Automatic Qiskit Code Refactoring Using Large Language Models</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2511.00160</span><span class="pt">What a Diff Makes: Automating Code Migration with Large Language Models</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">C3</span>遷移 benchmark<span class="sn">10 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2505.09569</span><span class="pt">MigrationBench: Repository-Level Code Migration Benchmark from Java 8</span><span class="cite">lc4/gc9</span></li>
+<li class=""><span class="pid">2506.00894</span><span class="pt">CodeMEnv: Benchmarking Large Language Models on Code Migration</span><span class="cite">lc2/gc14</span></li>
+<li class=""><span class="pid">2510.04852</span><span class="pt">FreshBrew: A Benchmark for Evaluating AI Agents on Java Code Migration</span><span class="cite">lc1/gc4</span></li>
+<li class=""><span class="pid">2509.12087</span><span class="pt">TransLibEval: Demystify Large Language Models' Capability in Third-party Library-targeted Code Translation</span><span class="cite">lc1/gc2</span></li>
+<li class=""><span class="pid">2412.17744</span><span class="pt">RepoTransBench: A Real-World Multilingual Benchmark for Repository-Level Code Translation</span><span class="cite">lc0/gc21</span></li>
+<li class=""><span class="pid">2602.09930</span><span class="pt">JMigBench: A Benchmark for Evaluating LLMs on Source Code Migration (Java 8 to Java 11)</span><span class="cite">lc0/gc4</span></li>
+<li class=""><span class="pid">2411.13990</span><span class="pt">RustRepoTrans: Repository-level Context Code Translation Benchmark Targeting Rust</span><span class="cite">lc0/gc3</span></li>
+<li class=""><span class="pid">2511.18867</span><span class="pt">VecIntrinBench: Benchmarking Cross-Architecture Intrinsic Code Migration for RISC-V Vector</span><span class="cite">lc0/gc2</span></li>
+<li class=""><span class="pid">2602.22518</span><span class="pt">RepoMod-Bench: A Benchmark for Code Repository Modernization via Implementation-Agnostic Testing</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2601.22597</span><span class="pt">TimeMachine-bench: A Benchmark for Evaluating Model Capabilities in Repository-Level Migration Tasks</span></li>
+</ul></div>
+</div></details>
+<details class="cat"><summary><span class="dot" style="background:#5BA8B8"></span><span>G — 特定維護任務</span><span class="cdesc">issue 解決以外的具體維護任務</span><span class="cnt" style="background:#5BA8B8">25</span></summary><div class="catbody">
+<div class="subsec"><div class="subhead"><span class="scode">G1</span>Documentation<span class="sn">7 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2510.24428</span><span class="pt">CodeWiki: Evaluating AI's Ability to Generate Holistic Documentation for Large-Scale Codebases</span><span class="cite">lc1/gc5</span></li>
+<li class=""><span class="pid">2501.07857</span><span class="pt">Hierarchical Repository-Level Code Summarization for Business Applications Using Local LLMs</span><span class="cite">lc0/gc15</span></li>
+<li class=""><span class="pid">2601.13007</span><span class="pt">ArchAgent: Scalable Legacy Software Architecture Recovery with LLMs</span></li>
+<li class=""><span class="pid">2604.26523</span><span class="pt">RepoDoc: A Knowledge Graph-Based Framework to Automatic Documentation Generation and Incremental Updates</span></li>
+<li class=""><span class="pid">2603.00489</span><span class="pt">Does My README File Need To Be Updated? Exploring LLM-Based README Maintenance</span></li>
+<li class=""><span class="pid">2603.14619</span><span class="pt">LLM-Augmented Release Intelligence: Automated Change Summarization and Impact Analysis in Cloud-Native CI/CD Pipelines</span></li>
+<li class=""><span class="pid">2604.19400</span><span class="pt">CASCADE: Detecting Inconsistencies between Code and Documentation with Automatic Test Generation</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">G2</span>Security & vulnerability<span class="sn">8 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2501.18160</span><span class="pt">RepoAudit: An Autonomous LLM-Agent for Repository-Level Code Auditing</span><span class="cite">lc0/gc55</span></li>
+<li class=""><span class="pid">2512.07533</span><span class="pt">VulnLLM-R: Specialized Reasoning LLM with Agent Scaffold for Vulnerability Detection</span><span class="cite">lc0/gc9</span></li>
+<li class=""><span class="pid">2410.13918</span><span class="pt">HKT-SmartAudit: Distilling Lightweight Models for Smart Contract Auditing</span><span class="cite">lc0/gc6</span></li>
+<li class=""><span class="pid">2505.08842</span><span class="pt">LibVulnWatch: A Deep Assessment Agent System and Leaderboard for Uncovering Hidden Vulnerabilities in Open-Source AI Libraries</span><span class="cite">lc0/gc3</span></li>
+<li class=""><span class="pid">2603.13384</span><span class="pt">VulnAgent-X: A Layered Agentic Framework for Repository-Level Vulnerability Detection</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2605.05969</span><span class="pt">HEIMDALLR: Characterizing and Detecting LLM-Induced Security Risks in GitHub CI Workflows</span></li>
+<li class=""><span class="pid">2601.00254</span><span class="pt">An Empirical Evaluation of LLM-Based Approaches for Code Vulnerability Detection: RAG, SFT, and Dual-Agent Systems</span></li>
+<li class=""><span class="pid">2602.12500</span><span class="pt">Favia: Forensic Agent for Vulnerability-fix Identification and Analysis</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">G4</span>Refactoring<span class="sn">2 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2412.15948</span><span class="pt">Trust Calibration in IDEs: Paving the Way for Widespread Adoption of AI Refactoring</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2605.14568</span><span class="pt">Mining Subscenario Refactoring Opportunities in Behaviour-Driven Software Test Suites: ML Classifiers and LLM-Judge Baselines</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">G5</span>Type inference<span class="sn">2 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2602.21251</span><span class="pt">AgenticTyper: Automated Typing of Legacy Software Projects Using Agentic AI</span></li>
+<li class=""><span class="pid">2512.21591</span><span class="pt">Co-Evolution of Types and Dependencies: Towards Repository-Level Type Inference for Python Code</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">G6</span>Code review<span class="sn">1 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2604.23088</span><span class="pt">Code Broker: A Multi-Agent System for Automated Code Quality Assessment</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">G8</span>其他<span class="sn">5 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2505.16590</span><span class="pt">Larger Is Not Always Better: Exploring Small Open-source Language Models in Logging Statement Generation</span><span class="cite">lc0/gc8</span></li>
+<li class=""><span class="pid">2508.12232</span><span class="pt">LinkAnchor: An Autonomous LLM-Based Agent for Issue-to-Commit Link Recovery</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2601.01271</span><span class="pt">CatchAll: Repository-Aware Exception Handling with Knowledge-Guided LLMs</span></li>
+<li class=""><span class="pid">2509.13535</span><span class="pt">Crash Report Enhancement with Large Language Models: An Empirical Study</span></li>
+<li class=""><span class="pid">2605.02033</span><span class="pt">Conventional Commit Classification using Large Language Models and Prompt Engineering</span></li>
+</ul></div>
+</div></details>
+<details class="cat"><summary><span class="dot" style="background:#C94F88"></span><span>D — Program Repair 技術</span><span class="cdesc">repair / patch 的技術本身</span><span class="cnt" style="background:#C94F88">18</span></summary><div class="catbody">
+<div class="subsec"><div class="subhead"><span class="scode">D1</span>Repair 框架<span class="sn">11 篇</span></div><ul class="papers">
+<li class=" med"><span class="pid">2506.10484</span><span class="pt">ExpeRepair: Dual-Memory Enhanced LLM-Based Repository-Level Program Repair</span><span class="cite">lc11/gc23</span></li>
+<li class=""><span class="pid">2506.16650</span><span class="pt">SemAgent: A Semantics Aware Program Repair Agent</span><span class="cite">lc4/gc7</span></li>
+<li class=""><span class="pid">2408.02232</span><span class="pt">SpecRover: Code Intent Extraction via LLMs</span><span class="cite">lc0/gc95</span></li>
+<li class=""><span class="pid">2404.12636</span><span class="pt">MORepair: Teaching LLMs to Repair Code via Multi-Objective Fine-tuning</span><span class="cite">lc0/gc25</span></li>
+<li class=""><span class="pid">2603.01048</span><span class="pt">RepoRepair: Leveraging Code Documentation for Repository-Level Automated Program Repair</span><span class="cite">lc0/gc4</span></li>
+<li class=""><span class="pid">2506.24015</span><span class="pt">Hierarchical Knowledge Injection for Improving LLM-based Program Repair</span><span class="cite">lc0/gc4</span></li>
+<li class=""><span class="pid">2507.15251</span><span class="pt">Input Reduction Enhanced LLM-based Program Repair</span><span class="cite">lc0/gc3</span></li>
+<li class=""><span class="pid">2602.23647</span><span class="pt">SGAgent: Suggestion-Guided LLM-Based Multi-Agent Framework for Repository-Level Software Repair</span><span class="cite">lc0/gc1</span></li>
+<li class=" med"><span class="pid">2603.22048</span><span class="pt">DAIRA: Dynamic Analysis-enhanced Issue Resolution Agent</span></li>
+<li class=""><span class="pid">2605.27238</span><span class="pt">EviACT: An Evidence-to-Action Framework for Agentic Program Repair</span></li>
+<li class=" med"><span class="pid">2604.04580</span><span class="pt">Beyond Fixed Tests: Repository-Level Issue Resolution as Coevolution of Code and Behavioral Constraints</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">D2</span>Patch refinement / 驗證<span class="sn">5 篇</span></div><ul class="papers">
+<li class=" med"><span class="pid">2511.16004</span><span class="pt">InfCode: Adversarial Iterative Refinement of Tests and Patches for Reliable Software Issue Resolution</span><span class="cite">lc2/gc5</span></li>
+<li class=""><span class="pid">2506.17772</span><span class="pt">PAGENT: Learning to Patch Software Engineering Agents</span><span class="cite">lc2/gc4</span></li>
+<li class=""><span class="pid">2510.03217</span><span class="pt">Abstain and Validate: A Dual-LLM Policy for Reducing Noise in Agentic Program Repair</span><span class="cite">lc1/gc5</span></li>
+<li class=""><span class="pid">2510.03588</span><span class="pt">REFINE: Enhancing Program Repair Agents through Context-Aware Patch Refinement</span><span class="cite">lc0/gc4</span></li>
+<li class=""><span class="pid">2410.09117</span><span class="pt">REDO: Execution-Free Runtime Error Detection for COding Agents</span><span class="cite">lc0/gc1</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">D3</span>專門 repair<span class="sn">2 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2506.18394</span><span class="pt">Tracing Errors, Constructing Fixes: Repository-Level Memory Error Repair via Typestate-Guided Context Retrieval</span><span class="cite">lc1/gc3</span></li>
+<li class=""><span class="pid">2605.17450</span><span class="pt">ContraFix: Agentic Vulnerability Repair via Differential Runtime Evidence and Skill Reuse</span></li>
+</ul></div>
+</div></details>
+<details class="cat"><summary><span class="dot" style="background:#5B7BC9"></span><span>E — SWE Model Training & Data</span><span class="cdesc">訓練 SWE 模型 / 建資料 / reward model</span><span class="cnt" style="background:#5B7BC9">16</span></summary><div class="catbody">
+<div class="subsec"><div class="subhead"><span class="scode">E1</span>SWE 特化模型 fine-tune<span class="sn">5 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2411.00622</span><span class="pt">Lingma SWE-GPT: An Open Development-Process-Centric Language Model for Automated Software Improvement</span><span class="cite">lc0/gc54</span></li>
+<li class=" med"><span class="pid">2412.01072</span><span class="pt">When Fine-Tuning LLMs Meets Data Privacy: An Empirical Study of Federated Learning in LLM-Based Program Repair</span><span class="cite">lc0/gc19</span></li>
+<li class=""><span class="pid">2508.15495</span><span class="pt">SynthCoder: A Synthetical Strategy to Tune LLMs for Code Completion</span><span class="cite">lc0/gc1</span></li>
+<li class=" med"><span class="pid">2511.19130</span><span class="pt">Can LLMs Recover Program Semantics? A Systematic Evaluation with Symbolic Execution</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2601.13713</span><span class="pt">SWE-Tester: Training Open-Source LLMs for Issue Reproduction in Real-World Repositories</span><span class="cite">lc0/gc1</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">E2</span>訓練資料建構<span class="sn">8 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2509.08724</span><span class="pt">SWE-Mirror: Scaling Issue-Resolving Datasets by Mirroring Issues Across Repositories</span><span class="cite">lc4/gc26</span></li>
+<li class=""><span class="pid">2506.19290</span><span class="pt">Skywork-SWE: Unveiling Data Scaling Laws for Software Engineering in LLMs</span><span class="cite">lc4/gc20</span></li>
+<li class=""><span class="pid">2508.01550</span><span class="pt">RepoForge: Training a SOTA Fast-thinking SWE Agent with an End-to-End Data Curation Pipeline Synergizing SFT and RL at Scale</span><span class="cite">lc2/gc3</span></li>
+<li class=""><span class="pid">2504.14757</span><span class="pt">SWE-Synth: Synthesizing Verifiable Bug-Fix Data to Enable Large Language Models in Resolving Real-World Bugs</span><span class="cite">lc0/gc24</span></li>
+<li class=""><span class="pid">2412.19031</span><span class="pt">Repository Structure-Aware Training Makes SLMs Better Issue Resolver</span><span class="cite">lc0/gc7</span></li>
+<li class=""><span class="pid">2508.11958</span><span class="pt">Clean Code, Better Models: Enhancing LLM Performance with Smell-Cleaned Dataset</span><span class="cite">lc0/gc4</span></li>
+<li class=""><span class="pid">2602.07457</span><span class="pt">Pull Requests as a Training Signal for Repo-Level Code Editing</span><span class="cite">lc0/gc1</span></li>
+<li class=""><span class="pid">2604.25880</span><span class="pt">From Threads to Trajectories: A Multi-LLM Pipeline for Community Knowledge Extraction from GitHub Issue Discussions</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">E3</span>Reward model / RL<span class="sn">3 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2512.18552</span><span class="pt">Toward Training Superintelligent Software Agents through Self-Play SWE-RL</span><span class="cite">lc1/gc21</span></li>
+<li class=""><span class="pid">2603.17829</span><span class="pt">CodeScout: An Effective Recipe for Reinforcement Learning of Code Search Agents</span><span class="cite">lc0/gc4</span></li>
+<li class=" med"><span class="pid">2604.10493</span><span class="pt">SWE-Shepherd: Advancing PRMs for Reinforcing Code Agents</span><span class="cite">lc0/gc1</span></li>
+</ul></div>
+</div></details>
+<details class="cat"><summary><span class="dot" style="background:#D9663B"></span><span>A — Issue Resolution Agents</span><span class="cdesc">唯一新貢獻是 agent 編排架構本身</span><span class="cnt" style="background:#D9663B">11</span></summary><div class="catbody">
+<div class="subsec"><div class="subhead"><span class="scode">A1</span>Full-stack 自主 agent<span class="sn">1 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2506.14683</span><span class="pt">Unified Software Engineering Agent as AI Software Engineer</span><span class="cite">lc0/gc15</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">A3</span>Multi-agent 協作 / ensemble<span class="sn">7 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2507.23370</span><span class="pt">Trae Agent: An LLM-based Agent for Software Engineering with Test-time Scaling</span><span class="cite">lc18/gc79</span></li>
+<li class=""><span class="pid">2409.16299</span><span class="pt">HyperAgent: Generalist Software Engineering Agents to Solve Coding Tasks at Scale</span><span class="cite">lc7/gc50</span></li>
+<li class=""><span class="pid">2403.17927</span><span class="pt">MAGIS: LLM-Based Multi-Agent Framework for GitHub Issue ReSolution</span><span class="cite">lc4/gc158</span></li>
+<li class=""><span class="pid">2406.11638</span><span class="pt">MASAI: Modular Architecture for Software-engineering AI Agents</span><span class="cite">lc0/gc57</span></li>
+<li class=""><span class="pid">2408.07060</span><span class="pt">Diversity Empowers Intelligence: Integrating Expertise of Software Engineering Agents</span><span class="cite">lc0/gc43</span></li>
+<li class=" med"><span class="pid">2603.09290</span><span class="pt">ToolRosella: Translating Code Repositories into Standardized Tools for Scientific Agents</span><span class="cite">lc0/gc2</span></li>
+<li class=" med"><span class="pid">2604.05278</span><span class="pt">Spec Kit Agents: Context-Grounded Agentic Workflows</span></li>
+</ul></div>
+<div class="subsec"><div class="subhead"><span class="scode">A4</span>Test-time scaling / 軌跡優化<span class="sn">3 篇</span></div><ul class="papers">
+<li class=""><span class="pid">2508.02085</span><span class="pt">SE-Agent: Self-Evolution Trajectory Optimization in Multi-Step Reasoning with LLM-Based Agents</span><span class="cite">lc5/gc39</span></li>
+<li class=" med"><span class="pid">2405.13057</span><span class="pt">Can Github issues be solved with Tree Of Thoughts?</span><span class="cite">lc0/gc5</span></li>
+<li class=""><span class="pid">2602.00129</span><span class="pt">Monte Carlo Tree Search for Execution-Guided Program Repair with Large Language Models</span></li>
+</ul></div>
+</div></details>
+<div class="foot">Sapphire research · private (noindex) · lc=語料庫內被引 · gc=Semantic Scholar 全球被引 · ⚠=medium 信心</div></div></body></html>
