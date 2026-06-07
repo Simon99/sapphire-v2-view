@@ -1,0 +1,223 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<title>子議題: RL Post-Training 配方</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1c1e22;--mut:#6b7280;--line:#e5e7eb;--accent:#2563eb}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans CJK TC",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.85}
+.layout{display:flex;max-width:1180px;margin:0 auto;gap:24px;padding:24px 20px 80px}
+#toc{position:sticky;top:20px;align-self:flex-start;width:230px;flex-shrink:0;font-size:13px;max-height:90vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+#toc .t{font-weight:700;margin-bottom:8px}#toc a{display:block;color:var(--mut);text-decoration:none;padding:3px 0;line-height:1.4}
+#toc a:hover{color:var(--accent)}#toc a.h1{font-weight:600;color:var(--ink);margin-top:8px}#toc a.h3{padding-left:12px;font-size:12px}
+.content{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 40px 50px}
+.content h1{font-size:26px;border-bottom:3px solid var(--accent);padding-bottom:8px;margin-top:36px}
+.content h2{font-size:21px;margin-top:32px;border-left:4px solid var(--accent);padding-left:12px}
+.content h3{font-size:17px;margin-top:24px;color:#334155}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th{background:#eef2f7;border:1px solid var(--line);padding:7px 10px;text-align:left}
+.content td{border:1px solid var(--line);padding:7px 10px;vertical-align:top}
+.content blockquote{border-left:4px solid #fbbf24;background:#fffbeb;margin:14px 0;padding:10px 16px;border-radius:0 6px 6px 0;color:#444}
+.content code{background:#eef0f3;padding:1px 5px;border-radius:4px;font-size:13px;font-family:ui-monospace,monospace}
+.content pre{background:#1e2233;color:#e2e8f0;padding:12px 14px;border-radius:8px;overflow:auto;font-size:12.5px}
+.content pre code{background:none;color:inherit}.content hr{border:none;border-top:1px solid var(--line);margin:30px 0}.content a{color:var(--accent)}
+@media(max-width:820px){#toc{display:none}.content{padding:8px 18px 40px}}
+</style></head><body><div class="layout"><nav id="toc"><div class="t">目錄</div></nav>
+<main class="content" id="content"></main></div>
+<script>
+const MD=`# 子議題：SWE Agent 的 RL / Post-Training 配方解剖
+
+> 深讀 12 篇訓練配方論文全文（2024-11 ~ 2026-04），抽 reward 設計 / dataset 準備 / 每筆格式 / 數量 vs model size / 演算法。
+> 引用 \`(短名 arXiv:id)\`。⚠ 配方數字綁論文與其底層模型世代，跨代比較需謹慎。
+
+---
+
+## §0 先講一個 meta 發現：「RL post-training」名實之辨
+
+把 12 篇按**真實訓練範式**攤開，會發現一個反直覺事實——**這領域所謂的「訓練」目前主體仍是 SFT，不是 RL**：
+
+| 範式 | 篇 | 論文 |
+|---|---|---|
+| **純 SFT**（execution 驗證過的軌跡做監督微調）| 6 | Lingma SWE-GPT、ReSAT、SWE-Synth、Skywork-SWE、SWE-Mirror、Clean-PR |
+| **SFT + RL**（SFT warm-start 再 RL）| 2 | RepoForge、CodePilot |
+| **純 RL**（直接從 base 做 RL）| 2 | RepoNavigator(GRPO)、CodeScout(GSPO) |
+| **Self-play RL** | 1 | SSR |
+| **PRM**（process reward model，不訓 policy）| 1 | SWE-Shepherd |
+
+關鍵觀察：
+1. **純 RL 幾乎全集中在「localization」子任務**（RepoNavigator、CodeScout）——因為 localization 的 reward 好定義（預測位置 vs gold patch 位置，可確定性計算、execution-free）。
+2. **端到端 issue resolution 的訓練多走 SFT**——因為 reward（測試通過）太稀疏、rollout 太貴，直接 RL 不划算，於是退而用「execution 驗證過的成功軌跡」做 SFT。
+3. Skywork-SWE、Lingma 都明說 **RL 留作 future work**。
+
+→ **這本身是最大落差**：repo-level SWE 的「真 RL」還在很早期，主因是 outcome reward 稀疏 + rollout 成本。下面分項拆解。
+
+---
+
+## §1 RL 演算法：GRPO 系當道，但「演算法選擇沒那麼重要」
+
+真正用 RL 的論文，演算法集中在 **GRPO 家族**（group-relative，免 value model、適合稀疏 reward）：
+- **RepoNavigator**（arXiv:2512.20957）：GRPO，group size G=8、clip 0.2/0.8、lr 1e-6、1 epoch、Qwen2.5 7B/14B/32B。
+- **CodeScout**（arXiv:2603.17829）：GSPO（GRPO 的 sequence-level 變體），且**刻意拿掉 KL 正則、拿掉 advantage 的標準差項**；Qwen3 1.7B/4B/14B。
+- **CodePilot**（arXiv:2602.00129）：傳統 PPO（有 value model），但需先 SFT warm-start。
+- **RepoForge**（arXiv:2508.01550）：SFT 1 epoch 後接 GRPO-style binary-reward RL。
+
+DPO 只出現在非核心場景（SynthCoder code completion、VulnLLM-R 漏洞偵測），不是 SWE agent 主流。
+
+> **反直覺數字**：CodeScout 測了 4 種 RL 演算法（GSPO/GRPO/SAPO/Dr.GRPO），file-level F1 全落在 **47–55% 的 8 點窄帶內**——**演算法選擇的影響，遠小於 reward 設計與 scaffold**（CodeScout arXiv:2603.17829）。這是給想入坑者的重要提示：別糾結 GRPO vs PPO，先把 reward 和環境設計對。
+
+---
+
+## §2 Reward 設計：四種流派
+
+這是用戶最關心的一塊。語料庫呈現四種 reward 設計，沿「outcome ↔ process」與「execution ↔ execution-free」兩軸分佈：
+
+### (a) Outcome execution reward（最常見、最稀疏）
+patch 跑測試、全過給 +1 否則 0。
+- RepoForge（arXiv:2508.01550）：binary，PASS_TO_PASS + FAIL_TO_PASS 全過才 +1。
+- SSR self-play（arXiv:2512.18552）：bug-injection 與 bug-solving 各一個 execution reward。
+- **問題**：reward 極稀疏（一個 issue 可能 8 rollout 全 0），訓練易崩。
+
+### (b) Localization F1/Dice reward（execution-free，純 RL 能成立的關鍵）
+不跑測試，把「預測的 code 位置」對「gold patch 的位置」算重疊分數——**確定性、密集、便宜**。
+- **CodeScout**：r = F1_file + F1_module + F1_func（範圍 0–3，三粒度相加）。
+- **RepoNavigator**：DICE(預測位置, gold 位置)。
+- 這就是為什麼**純 RL 先在 localization 突破**——reward 可微分到三粒度，不必等昂貴的測試執行。
+
+### (c) Process reward（step-level，對抗稀疏）
+給每一步打分，不只看最終結果。
+- **SWE-Shepherd（PRM）**（arXiv:2604.10493）：訓一個 reward model，取 LLM 最後一層 hidden → MLP head → 回歸 step-level scalar reward；規則含「成功執行 / 相關檔案存取 / ...」啟發式。15,000 訓練樣本、推論時 reward-guided search。
+- **RepoNavigator 的混合式**：R = λ·DICE(outcome) + (1-λ)·tool-success-rate(process)，λ=0.5。**tool reward 當密集 proxy 緩解稀疏**——實測 per-step tool reward 與 per-step Dice 的 Pearson r=0.8886。
+
+### (d) Multi-objective reward（組合多訊號）
+- **CodePilot**：R = λ1·R_test + λ2·R_lint + λ3·R_style（測試通過 + 靜態檢查 + 風格），outcome + process 混合。
+
+> **設計啟示**：稀疏 outcome reward 是 SWE RL 的核心障礙。三條繞道——(1) 換成 execution-free 的 localization F1（CodeScout/RepoNavigator）、(2) 加 process/tool 密集 proxy（RepoNavigator 的 tool reward、SWE-Shepherd 的 PRM）、(3) 加輔助 reward 防崩（CodeScout 14B 因訓練崩潰，加了「恰好 4 turns 完成」的 r^turn binary reward 才穩）。
+
+---
+
+## §3 Dataset 準備：來源、合成 vs 真實、pipeline
+
+幾乎全部來自 **GitHub PR/issue**，差別在「真實挖掘 vs 合成生成」與「驗證方式」：
+
+| 路線 | 做法 | 代表 |
+|---|---|---|
+| **真實 PR 挖掘** | 爬 GitHub merged PR + linked issue，解 gold patch | Lingma(90K PR/4K repo)、ReSAT(44K PR/229 repo)、Skywork(151K repo metadata 起)、Clean-PR(8.6TB/274K repo/16.4M PR) |
+| **跨 repo 鏡像** | 把真 PR「鏡射」到既有 Gym 環境擴量 | SWE-Mirror(60K) |
+| **合成 bug 注入** | LLM 重寫既有 code 製造可驗證 bug | SWE-Synth(9,459)、SSR(self-play 注 bug) |
+| **localization 標註** | 從 gold patch 抽三粒度位置 + LocAgent 後處理 | CodeScout、RepoNavigator（均源自 SWE-smith）|
+
+**共同的鐵律：execution-based 驗證當品質閘**。不管真實或合成，最終只留「patch 能通過測試 / localization F1=1」的樣本。Skywork：10,169 驗證通過 task → 8,209 成功軌跡；SWE-Synth：21,804 生成 variant → 9,459 留存。
+
+**防 leakage 也是鐵律**：所有論文都排除與 SWE-bench Verified/Pro/Lite 重疊的 repo。
+
+---
+
+## §4 數量 vs Model Size（用戶重點）
+
+把資料量跟模型規模並排，浮現一個清楚規律——**RL 要的資料少得驚人，SFT 要的多**：
+
+| 方法 | 範式 | base model | 訓練資料量 | 結果(SWE-bench) |
+|---|---|---|---:|---|
+| RepoNavigator | 純 RL | Qwen2.5 7-32B | **~4K** | Verified func-F1 27.49 (7B) |
+| CodeScout-4B | 純 RL | Qwen3-4B | **1.6K** | Verified file-F1 68.52 |
+| CodeScout-14B | 純 RL | Qwen3-14B | **9.6K** | Verified file-F1 68.57 |
+| CodePilot | SFT+RL | Qwen3-8B | 未明確 | Lite 24.67% |
+| RepoForge | SFT+RL | Qwen3-8B | 7.3K(SFT 用 1.2K) | Verified 17.4% |
+| SWE-Synth | SFT | Qwen2.5-Coder 14B | 9,459 | Lite 15.3% |
+| Skywork-SWE | SFT | Qwen2.5-Coder 32B | 8,209 軌跡 | Verified 38.0% |
+| ReSAT | SFT | 7B | **80,260** | Verified 7.2% |
+| SWE-Mirror | SFT | Qwen2.5-Coder 7/32B | **60,671** | Verified 22.8% |
+| Clean-PR | mid-train+SFT | Qwen2.5-Coder 32B | **2M / 17.7B token** | Lite 24.3% |
+| Lingma SWE-GPT | 迭代 SFT | Qwen2.5 72B | 90K PR 起(留存未明) | Verified 30.2% |
+
+**規律與洞察**：
+1. **RL 資料效率極高**：CodeScout-4B 只用 **1.6K** 樣本就在 localization 贏過 Qwen3-32B；RepoNavigator **4K** 樣本贏所有 7B baseline。因為 RL 是「在環境裡探索 + reward 訊號」，不需海量標註軌跡。
+2. **SFT 是資料飢渴**：要 6 萬（SWE-Mirror）、8 萬（ReSAT）、甚至 2M instance / 17.7B token（Clean-PR mid-training）。
+3. **明確的 scaling law 討論幾乎沒有**——只有 **Skywork-SWE** 真正畫了「data scaling laws」（資料量 vs 效能持續上升未飽和）；Clean-PR 有 7B vs 32B 縮放實驗。其餘論文**都沒系統討論資料量與 model size 的關係**——這是領域的方法論空白。
+4. **model size 趨小**：除 Lingma 72B、幾個 32B，主力落在 **1.7B–14B**。RL 路線尤其偏小（CodeScout 從 1.7B 起）。
+
+---
+
+## §5 每一筆 Dataset 長什麼樣（用戶重點）
+
+依任務不同，訓練樣本格式分三型：
+
+### 型一：Localization 樣本（RL，最精簡）
+\`\`\`
+{ issue_description: GitHub issue 文字,
+  repo_state: pre-PR 的 repo（用 bash/language server 存取，不塞進 context）,
+  ground_truth_locations: { files:[...], modules:[file:class], functions:[file:class:func] } }
+\`\`\`
+- 注意：**輸入裡沒有 gold patch、沒有示範軌跡**——只給 issue + 活的 repo，agent 自己探索；軌跡是 RL rollout 時生成的 (action→observation) 序列，結尾呼叫 \`localization_finish\`（CodeScout、RepoNavigator）。
+
+### 型二：完整 resolution 軌跡（SFT，最豐富）
+\`\`\`
+{ issue: 自然語言描述,
+  repo_context: 對應 PR 時間點的 repo snapshot,
+  trajectory: multi-turn (thought → tool_call → observation)* → final patch,
+  gold_patch / test: 用於 execution 驗證該軌跡是否該保留 }
+\`\`\`
+- SWE-Mirror、Skywork、Lingma、SWE-Synth 都是這型——**一筆 = 一條「從 issue 到修好」的完整專家軌跡**，只有跑測試通過的才入庫（behavioral cloning）。SWE-Synth 還額外存 buggy variant 本身。
+
+### 型三：Step-level reward 三元組（PRM）
+\`\`\`
+{ problem_statement: issue,
+  recent_interaction_history: 之前的 action/observation,
+  current_step + scalar_reward_label }  ← SWE-Shepherd 15K 筆
+\`\`\`
+- 用來訓 reward model（回歸 step 分數），不是訓 policy。
+
+### 型四：Mid-training 線性文字序列（Clean-PR）
+\`\`\`
+Repository Name: {repo} \\n ...PR 內容線性化成 Search/Replace block 文字...
+\`\`\`
+- 2M 筆、17.7B token，當「繼續預訓練」語料，不是 instruction 格式。
+
+> **格式啟示**：RL 樣本「輕」（只需 issue + repo + gold 位置，軌跡靠探索生成），SFT 樣本「重」（需完整驗證過的軌跡）。這直接解釋了 §4 的資料量差異——RL 用環境換資料，SFT 用資料換環境。
+
+---
+
+## §6 小模型 RL vs 大模型 prompt：能追上嗎？
+
+證據傾向「**在特定子任務（localization）上，小模型 RL 能贏大模型甚至前沿模型**」：
+- **CodeScout-4B**（RL）file-F1 68.52 > **Qwen3-32B Thinking** 62.91、> RepoNavigator-32B 67.75——**贏大 2–18× 的模型**。
+- **CodeScout-14B** 比 base Qwen3-14B **絕對 +23~34% file-F1**。
+- 下游效益：把 issue resolution agent 換上 CodeScout-14B 定位，resolve rate 13.4%→17.2%（+3.8%），同時**少 2.18 步、少 17.46% input token**。
+
+但有邊界：
+- 這些勝利**集中在 localization**，不是端到端 resolution（端到端 SOTA 仍是大模型/閉源 agent）。
+- 前沿模型有自己的脆弱：CodeScout 發現 **GPT-5 與 Claude-Sonnet-4.5 在沒有「提醒提交」prompt 時 F1 掉到接近 0**——對 prompt engineering 異常敏感。
+
+---
+
+## §7 RL 如何改變 Tool Use（與 tool-use 子議題銜接）
+
+RL 不只訓模型，還**讓 agent 自己收斂出最小工具集**：
+- **CodeScout**：只給一個 bash terminal，RL 後 14B **自發收斂到只用 \`rg\` + \`sed\` 兩個 Unix 命令**；4B 收斂到 rg/cat/sed/xargs。沒有 code graph、AST parser、vector DB、language server。
+- **RepoNavigator**：單一 \`jump\` tool（語言伺服器查符號定義），GRPO 端到端訓；論文發現**加更多工具反而讓 IoU 從 24.28 掉到 13.71**。
+- CodeScout 也試過獎勵「parallel tool-call」，發現**有害、移除**。
+
+→ 呼應 tool-use 子議題的核心張力：**強模型 + RL 下，工具越少越好**；RL 是讓「少工具」成立的訓練手段。
+
+---
+
+## §8 張力與啟示
+
+1. **「RL post-training」目前名過於實**：主體是 execution-verified SFT，純 RL 還局限在 localization。端到端 issue resolution 的真 RL 是最大的未開疆域，卡在 reward 稀疏 + rollout 成本。
+
+2. **reward 設計 > 演算法選擇**：CodeScout 證明 4 種 RL 演算法差距僅 8 點。入坑先解決 reward（execution-free localization F1、process/tool 密集 proxy、防崩輔助 reward）。
+
+3. **RL 資料效率碾壓 SFT**：1.6K–4K（RL）vs 60K–2M（SFT）。誰能把端到端 resolution 的 reward 變密集，誰就能把 RL 的資料效率優勢帶到主任務。
+
+4. **方法論空白：缺 scaling law**：只有 Skywork-SWE 系統畫了 data scaling。資料量 × model size × 範式（SFT/RL）的三維 trade-off 幾乎無人系統研究——**這是值得做的後設研究**。
+
+5. **小模型 RL 是成本解**：localization 上 4B-14B RL 模型贏 32B/前沿，且降下游 token——對「不想每次 issue 都燒 GPT-5」的工業場景是直接的成本答案。
+
+---
+
+_配套：tool-use 子議題見 \`subtopic-tooluse.md\`；訓練資料論文歸在分類 E（Training & Data, 16 篇）；逐篇配方原始資料見 metadata/_rl/out-*.json。_
+`;
+const content=document.getElementById('content');content.innerHTML=marked.parse(MD);
+const toc=document.getElementById('toc');
+content.querySelectorAll('h1,h2,h3').forEach((h,i)=>{const id='s'+i;h.id=id;const a=document.createElement('a');a.href='#'+id;a.textContent=h.textContent;a.className=h.tagName.toLowerCase();a.onclick=e=>{e.preventDefault();h.scrollIntoView({behavior:'smooth'});history.replaceState(null,'','#'+id);};toc.appendChild(a);});
+</script></body></html>

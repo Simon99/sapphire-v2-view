@@ -1,0 +1,161 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<title>子議題: Tool Use 形態演進</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1c1e22;--mut:#6b7280;--line:#e5e7eb;--accent:#2563eb}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans CJK TC",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.85}
+.layout{display:flex;max-width:1180px;margin:0 auto;gap:24px;padding:24px 20px 80px}
+#toc{position:sticky;top:20px;align-self:flex-start;width:230px;flex-shrink:0;font-size:13px;max-height:90vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+#toc .t{font-weight:700;margin-bottom:8px}#toc a{display:block;color:var(--mut);text-decoration:none;padding:3px 0;line-height:1.4}
+#toc a:hover{color:var(--accent)}#toc a.h1{font-weight:600;color:var(--ink);margin-top:8px}#toc a.h3{padding-left:12px;font-size:12px}
+.content{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 40px 50px}
+.content h1{font-size:26px;border-bottom:3px solid var(--accent);padding-bottom:8px;margin-top:36px}
+.content h2{font-size:21px;margin-top:32px;border-left:4px solid var(--accent);padding-left:12px}
+.content h3{font-size:17px;margin-top:24px;color:#334155}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th{background:#eef2f7;border:1px solid var(--line);padding:7px 10px;text-align:left}
+.content td{border:1px solid var(--line);padding:7px 10px;vertical-align:top}
+.content blockquote{border-left:4px solid #fbbf24;background:#fffbeb;margin:14px 0;padding:10px 16px;border-radius:0 6px 6px 0;color:#444}
+.content code{background:#eef0f3;padding:1px 5px;border-radius:4px;font-size:13px;font-family:ui-monospace,monospace}
+.content pre{background:#1e2233;color:#e2e8f0;padding:12px 14px;border-radius:8px;overflow:auto;font-size:12.5px}
+.content pre code{background:none;color:inherit}.content hr{border:none;border-top:1px solid var(--line);margin:30px 0}.content a{color:var(--accent)}
+@media(max-width:820px){#toc{display:none}.content{padding:8px 18px 40px}}
+</style></head><body><div class="layout"><nav id="toc"><div class="t">目錄</div></nav>
+<main class="content" id="content"></main></div>
+<script>
+const MD=`# 子議題：LLM Coding Agent 的 Tool Use（依模型世代解讀）
+
+> 脈絡：tool use 的設計決策從來不是獨立的工程問題——它首先是一個「當前模型能力在哪裡」的問題。本文的核心論點是：**tool use 結論必須綁定模型世代才有意義**；GPT-4 世代(2024)的「多工具鷹架有效」與 Sonnet 4.x/GPT-5 世代(2025H2+)的「少工具+RL 更好」，是不同模型世代各自在當下的局部最優，不在同一條曲線，跨代線性外推會誤導。本文整合 14 篇核心論文，以「世代可見」為前提梳理工具設計哲學的轉移，以及橫跨世代的安全議題。
+
+---
+
+## §0 方法論 Caveat：為何 Tool Use 結論必須綁定世代
+
+**弱模型時代的「多工具有效」是補足能力缺口**。2024 年的 GPT-4-turbo 在 repo 級任務上 Pass@1 僅 21.8%；在這個能力水位，專用工具（BM25 文件搜尋、AST 靜態分析、sandbox 執行）可以把模型做不到的子任務接管過來，工具越精緻、效果越顯著。這個結論在弱模型上是真實的。
+
+**強模型時代出現了根本不同的觀察**。當 Qwen2.5-7B 透過 GRPO 訓練後，反而是「只給一個 jump 工具」比「給多個工具」性能更好；CodeScout-14B（Qwen3 base）用純 Unix terminal + GSPO RL，14B 小模型超越 RepoNavigator-32B。這個結論同樣是真實的——但它的前提是 RL 訓練已介入，模型世代已跳躍。
+
+**不能跨代外推的核心理由**：弱模型靠工具彌補認知缺口（工具是代理能力）；強模型經 RL 訓練後具備自主深度利用通用介面的能力，多工具的協調成本反而成為主要障礙。這是兩種機制，不是同一機制在不同程度上的表現。把 2024 GPT-4 的「多工具好」與 2025H2+ Sonnet 4.x 的「少工具好」並列，推導出「工具從多到少演進」的通則，是一個誤導性的線性外推。
+
+以下各節依此前提組織：§1 聚焦 2025H2 之後新世代論文（主體論證）；§2 為安全橫切面；§3 為 GPT-4 世代歷史對照（明標不外推）；§4 在「綁世代」前提下討論張力與展望。
+
+---
+
+## §1 新世代(2025H2+)的 Tool Use 設計
+
+### 1.1 單工具 + RL：從 RepoNavigator 到 CodeScout
+
+**RepoNavigator**（Zhang et al. 2026，北京大學/Baidu，arXiv:2512.20957）是轉折點。底層模型：Qwen2.5-7B/14B-Instruct，以 GRPO 強化學習從預訓練模型端到端訓練，training data 來自 SWE-smith（約 4K 樣本）。核心設計是極端化：以**唯一一個** \`jump\` 工具取代多工具鏈。\`jump\` 透過 Pyright Language Server 做靜態分析，沿 LEGB scope chain 追蹤符號定義，處理跨 module 的 import 依賴圖。
+
+消融結果直接挑戰多工具直覺：**jump-only 的 function-level IoU 達 24.28；但只要加入 GetClass、GetFunc、GetStruc 任何一個工具，性能反而下降，最差跌至 13.71**——增加工具使性能惡化 45% (RepoNavigator arXiv:2512.20957, Table 4)。同時 token 耗用僅 2.68K，比 LocAgent 的 48.86K 省 18 倍。7B GRPO 模型超越所有同等規模 training-free baseline，甚至超過 14B training-free 方法。
+
+搭配更強閉源模型時效果進一步放大：RepoNavigator+Claude 4.5 Sonnet 在 function-level Sample-F1/IoU 達 43.62/41.31，優於 RepoSearcher+Claude 3.7 Sonnet（28.30/17.89）(RepoNavigator arXiv:2512.20957, Table 1)。這個數字說明「單工具 + RL」框架與新世代閉源模型有良好的互補性。
+
+**CodeScout**（Sutawika et al. 2026，CMU/OpenHands，arXiv:2603.17829）把「少工具」哲學推到另一個極端：**連語言特定的靜態分析都不用，只給標準 Unix terminal**（rg、find、ls、cat、head 等）。底層模型：Qwen3 family（1.7B/4B/14B），以 GSPO 演算法做 RL post-training，移除 KL 正則項與 advantage standardization。
+
+訓練過程中工具使用行為出現自發收斂：**14B 模型逐漸收斂為僅用 \`rg\` 與 \`sed\` 兩個指令；4B 模型主要使用 \`rg\`、\`cat\`、\`sed\`、\`xargs\`**——RL 自動在 Unix 指令空間找到最高效子集，不需人工設計工具組合 (CodeScout arXiv:2603.17829, §6.2)。CodeScout-14B 在 SWE-Bench Verified file-level F1 達 68.57，超越 RepoNavigator-32B（67.75）。
+
+CodeScout 還驗證了工具的下游效益：以 CodeScout-14B 增強 Qwen3-4B-Instruct agent 的 code localization 階段後，issue resolution rate 從 13.40% 升至 17.20%，input tokens 同時減少 17.46% (CodeScout arXiv:2603.17829, §6.1)。
+
+這兩篇論文共同確立了一個新世代觀察：**RL 訓練讓小型模型學會深度利用通用介面，多工具的協調成本從「可接受的設計代價」變成「主要性能障礙」。**
+
+### 1.2 Skill 注入與輕量結構導引：量化結果分歧
+
+新世代對「注入結構化知識給 agent」的嚴格量化研究出現了明確分歧，取決於注入形式。
+
+**SWE-Skills-Bench**（Han et al. 2026，南京大學/MBZUAI，arXiv:2603.15401）是首個以配對實驗隔離 skill 邊際效用的 benchmark。實驗 agent：Claude Code + Claude Haiku 4.5。49 個 SWE 專用 skills 在 565 個任務上的結果令人冷靜：**39 個（約 80%）的 ΔP = 0**，全集平均 ΔP 僅 +1.2%；3 個 skills 呈負 ΔP，最差 \`springboot-tdd\` −10.0% (SWE-Skills-Bench arXiv:2603.15401, Table 2)。
+
+失敗模式揭示了為什麼：Surface anchoring（直接抄 template 具體數值）、Hallucination（認知負荷過高捏造不存在欄位）、Concept bleed（鄰近概念污染輸出）——這三種失敗模式的共同來源是 skill 的程序性模板性質，要求 agent「跟著劇本走」反而干擾了強模型本身的推理能力。論文自陳：更強的模型可能已內化 skill 知識，skill 變成冗餘甚至干擾 (SWE-Skills-Bench arXiv:2603.15401, §5)。
+
+相比之下，**AGENTS.md**（Lulla et al. 2026，SMU/Heidelberg 等，arXiv:2601.20404）的輕量介入結果截然不同。實驗 agent：OpenAI Codex（\`gpt-5.2-codex\`）。在 repository 根目錄放一個描述 project 結構與開發慣例的配置檔，output token 下降 20.08%，wall-clock 完成時間下降 20.27%，total token 節省 9.93%（Wilcoxon p < 0.05）(AGENTS.md arXiv:2601.20404, Table 1)。
+
+設計意圖的差異解釋了結果分歧：AGENTS.md 是「幫 agent 省去 exploration overhead 的地圖」（abstract guidance），SWE-Skills-Bench 的 skills 是「要求 agent 跟著模板走的劇本」（concrete, opinionated template）。SWE-Skills-Bench 明確總結：**abstract guidance patterns 比 concrete templates 更穩健** (SWE-Skills-Bench arXiv:2603.15401, §5)。
+
+### 1.3 MCP 工具生態化
+
+2026 年工具設計出現了生態化趨勢，核心是 Model Context Protocol（MCP）標準化，讓工具庫可跨 agent 可移植。
+
+**ToolRosella**（Di et al. 2026，東南大學/中山大學等，arXiv:2603.09290）提出端到端的 repository-to-MCP 自動轉換框架，底層 LLM 推斷使用 DeepWiki + GPT-5.3 Codex 輔助。LLM-only 單輪轉換成功率僅 8.2%，三輪 RRF（Review-Revise-Fix）迭代修復後達 **61.5%**，每 repo 平均 7.2 分鐘（vs 人工 31.6 分鐘，快 4.4×）。工具注入後 RepoMaster 成功率從 16.3% 升至 81.5%（+65.2 pp），OpenAgents 從 22.0% 升至 82.0% (ToolRosella arXiv:2603.09290, §2.3)。
+
+**ReCodeAgent**（Ibrahimzada et al. 2026，UIUC/Amazon，arXiv:2604.07341）在代碼翻譯場景以 MCP 向 agent 提供 LSP 工具（\`definition\`、\`diagnostics\`、\`edit_file\`、\`hover\`、\`references\`、\`rename_symbol\`）。底層模型：Anthropic Claude 4.5 Sonnet。工具使用統計呈現明確的頻率分層：基礎操作（Read、Bash、Edit）各約 15,000 次，而高層 LSP 工具（\`hover\` ~150 次，\`definition\` ~40 次）使用頻率遠低 (ReCodeAgent arXiv:2604.07341, §4.5)。這個頻率分層反映了強模型（Claude 4.5 Sonnet）的實際行為：**傾向用通用工具解決問題，只在必要時才求助特化工具**——與 CodeScout 的 RL 收斂觀察一致。
+
+Multi-Hunk 行為研究（Nashid et al. 2025，UBC/Queen's，arXiv:2511.11012）則提供了強模型在真實任務上的行為基準。四個 agent 在 372 個 Java multi-hunk bugs 上：Claude Code（底層 Sonnet-4.5）修復率 93.28%，Codex（GPT-5）87.10%，Gemini-cli（gemini-2.5-flash）41.67%，Qwen Code（qwen3-coder-flash）25.81% (Multi-Hunk arXiv:2511.11012, Table 2)。Claude Code input token 僅 969/bug，因 prompt caching 讓 96% 輸入走 cache；Codex 每 bug 消耗 57.1K input tokens——強模型以更少 token 消耗完成更精準的修復，token 成本結構根本不同 (Multi-Hunk arXiv:2511.11012, §RQ5)。
+
+---
+
+## §2 安全橫切面：工具能力擴張與攻擊面同步增長
+
+安全問題是橫跨新舊世代、隨工具能力增強而同步加劇的議題。兩篇 2026 年系統性研究從不同角度揭示了問題的嚴重程度。
+
+**Prompt Injection SoK on Agentic Coding Assistants**（Maloyan et al. 2026，HSE University，arXiv:2601.17548）系統化分析 Claude Code、Cursor、Codex CLI、Gemini CLI 等主流 CLI agent 的 prompt injection 威脅（meta-analysis 78 篇文獻，2021–2026）。MCPSecBench 顯示 85%+ 的攻擊可 compromise 至少一個主流平台；所有 12 種已發表防禦在 adaptive attack 下幾乎全線崩潰：Protect AI 在非 adaptive 攻擊下 bypass rate <5%，但 adaptive attack 下高達 93%（+88%）(Prompt Injection arXiv:2601.17548, §VI-B)。
+
+平台間漏洞差異顯著：Cursor 評為 Critical（MCP 伺服器未沙箱化、無 auto-approve 限制）；Claude Code 評為 Low（強制工具確認、MCP 預設沙箱、明確 permission prompts）；Copilot 評為 High（CVE-2025-53773 config 污染漏洞）(Prompt Injection arXiv:2601.17548, §VII-C)。論文描述這是「無架構解」的 Capability-Security tradeoff：agent 越有能力，越需要廣泛的外部資源存取，攻擊面必然擴大 (Prompt Injection arXiv:2601.17548, §VIII-A)。
+
+**TAINTAWI**（Wang et al. 2025，華中科技大學/360 AI Security Lab，arXiv:2605.07135）聚焦 GitHub Actions CI/CD 工作流中的 LLM agentic action（\`claude-code-action\`、\`codex-action\`、\`run-gemini-cli\` 等）。靜態分析 13,392 個 agentic workflows，報告 519 個潛在漏洞，手動確認 496 個可利用（precision 95.6%），其中 **343 個為先前未知的 zero-day 漏洞** (TAINTAWI arXiv:2605.07135, §VI-B)。
+
+攻擊路徑以 issue title/body 為主要 source（86.5%），P2S（model 輸出直接進入 shell commands 或 GitHub API calls）為主要 sink pattern（84.5%）。最令人警惕的生態數據：1,033 個候選 actions 中 453 個（43.9%）暴露 prompt boundary，但**只有 21 個（2.0%）提供 access control**；\`anthropics/claude-code-action\` 被 5,212 個下游 workflows 引用 (TAINTAWI arXiv:2605.07135, §IV-C)。
+
+MCP 工具生態走向標準化加速了工具擴散，也同步放大了 prompt injection 的潛在攻擊面。43.9% 暴露 prompt boundary 但只有 2.0% 有 access control，是 MCP 工具化大規模普及前必須解決的先決條件。
+
+---
+
+## §3 歷史對照：GPT-4 世代(2024)的多工具堆疊
+
+*本節交代 GPT-4 世代的工具設計形態。這些結論在當時的模型能力水位下成立，**不直接外推到新世代**——它們是弱模型補足能力缺口的局部最優，不是工具設計的普遍原理。*
+
+**CodeAgent**（Zhang et al. 2024，北京大學，arXiv:2401.07339）底層模型 GPT-4-turbo，配備 5 個工具：WebSearch、DocSearch（BM25）、SymbolSearch（tree-sitter）、FormatCheck（Black）、PythonREPL。GPT-4-turbo Pass@1 從 21.8% 升至 37.6%（+15.8 pp，+72.7%）；消融研究顯示 SymbolSearch 最關鍵（移除後 −7.9 pp）(CodeAgent arXiv:2401.07339, §5.4)。這個結果的意義是：在 GPT-4-turbo 能力水位，工具是真實有效的性能槓桿。
+
+**RRR**（Deshpande et al. 2024，Microsoft Research India，arXiv:2405.01573）底層模型 GPT-4（Azure OpenAI），以 Jedi + Tree-Sitter 實作 6 個靜態分析工具，Java repo 級類別生成 Pass@1 從 54.7% 升至 77.6%（+22.9 pp）(RRR arXiv:2405.01573, Table 3)。但 RRR 同時發現了「few-shot bias」問題：工具如果出現在示例中，模型即使不需要也傾向調用——**這個發現已預示了多工具設計在強模型時代會變成問題** (RRR arXiv:2405.01573, §RQ5)。
+
+**RES-Q** benchmark（LaBash et al. 2024，Qurrent AI，arXiv:2406.16801）揭示了 2024 年模型的能力邊界：Claude 3.5 Sonnet 與 GPT-4o 在 HumanEval 僅差 1%，但在 repo 級編輯任務上差距拉開至 12–15 個百分點 (RES-Q arXiv:2406.16801, §4.2)。這個差距是那個時代多工具設計存在的根本理由。
+
+**HyperAgent**（Phan et al. 2024，FPT Software AI，arXiv:2409.16299）底層模型 Claude 3 Sonnet/Haiku 或 GPT-4o，消融驗證 \`open_file\` 加入 keyword_summary 後解決率從 9% 升至 15% (HyperAgent arXiv:2409.16299, Table 6)。多工具在當時仍是競爭所需的設計。
+
+**這些 2024 論文的共同語境**：在 GPT-4-turbo、Claude 3 Sonnet 的能力水位，repo 級任務與函式級任務之間有巨大能力差距，工具是填補這個差距的手段。RL post-training 尚未大規模介入這類 agent；模型本身尚未具備在通用介面上自主收斂到最高效工具使用策略的能力。
+
+---
+
+## §4 張力與展望（在「綁世代」前提下）
+
+### 單工具 + RL 的適用邊界
+
+RepoNavigator 和 CodeScout 的結論都建立在 **code localization** 任務上——找到需要修改的位置，reward 信號清晰（DICE 分數、F1）。**完整的 repo 級維護任務**（理解 issue → 定位 → 修復 → 測試 → 提交）的工具需求更複雜。
+
+Multi-Hunk 行為研究提供了修復任務的現實觀察：135 個 bugs 的 localization 正確但 repair 失敗的案例（localization-repair gap），主要難點是深層繼承、annotation-driven 行為、多型序列化邏輯 (Multi-Hunk arXiv:2511.11012, §4.6)。這些複雜語意情境能否在更通用的 Unix terminal 介面上由 RL 自主解決，目前缺乏實驗。
+
+此外，ReCodeAgent 的工具頻率分層（LSP \`definition\` 僅 ~40 次 vs. Bash ~15,000 次）說明：**強模型的主要工作仍在通用工具，特化工具作為稀少但關鍵的補充仍有其位置**，只是比例結構與弱模型時代根本不同。
+
+### Skill 注入在 RL-trained Agent 上的效果
+
+SWE-Skills-Bench 全程使用 Claude Code + Claude Haiku 4.5（強模型，但非 RL-trained localization specialist）。RL-trained agent（如 RepoNavigator、CodeScout）本身已高度收斂的工具使用策略，對外部 skill 注入的敏感性目前無數據——可能更低（已內化），也可能更高（收斂策略被干擾）。這是一個待填的實驗空缺。
+
+### MCP 工具化的安全治理前提
+
+ToolRosella 的 61.5% 轉換成功率說明 MCP 化尚未成熟（與人工工程師 90.2% 仍有 28.5 pp 差距），主因是環境重建失敗（broken remote dependencies、platform-specific configs）超出程式層面可自動修復的範圍。更根本的是：43.9% agentic workflows 暴露 prompt boundary 但只有 2.0% 有 access control，安全治理嚴重滯後於工具擴散速度。MCP 工具生態化要真正規模化，**安全治理基礎設施的建立是先決條件，而非後續補強**。
+
+### 下一步的合理預測
+
+1. **RL 延伸到 repair 任務**：test execution（pass/fail）有清晰 binary reward 信號，是 localization 之後「少工具 + RL」哲學最自然的延伸方向。
+2. **安全治理標準化**：TAINTAWI 揭示的生態問題（2.0% access control 覆蓋率）預示著 MCP 層的 capability 聲明和 sandbox 強制化需求。
+3. **輕量結構導引成為標配**：AGENTS.md 的效果（−20% token、−20% 時間，統計顯著）相比其成本（一個文字檔）顯然划算，但其效果是否在 RL-trained agent 上同樣成立，仍是開放問題。
+
+---
+
+## 結論
+
+新世代（2025H2+）的 tool use 設計有三條清晰觀察：（1）RL post-training 讓 agent 自主收斂到最小有效工具集，多工具協調成本在強模型上從可接受變成主要障礙（RepoNavigator、CodeScout）；（2）abstract 輕量結構導引有效，程序性模板注入多半無效或有害（AGENTS.md vs. SWE-Skills-Bench）；（3）MCP 工具生態化趨勢明確但安全治理嚴重滯後（ToolRosella、TAINTAWI）。
+
+2024 GPT-4 世代的「多工具有效」是在當時模型能力水位下的局部最優，不是被推翻了，而是**它回答的問題（弱模型如何補足能力缺口）與新世代的問題（強模型如何避免干擾）根本不同**。理解這個差異，是評估任何具體工具設計選擇的前提。
+
+---
+
+*覆蓋論文（新世代主體，2025H2+）：RepoNavigator (arXiv:2512.20957)、CodeScout (arXiv:2603.17829)、SWE-Skills-Bench (arXiv:2603.15401)、AGENTS.md (arXiv:2601.20404)、ToolRosella (arXiv:2603.09290)、ReCodeAgent (arXiv:2604.07341)、Prompt Injection SoK (arXiv:2601.17548)、TAINTAWI (arXiv:2605.07135)、Multi-Hunk Behavioral (arXiv:2511.11012)*
+
+*歷史對照（GPT-4 世代，2024）：CodeAgent (arXiv:2401.07339)、RRR (arXiv:2405.01573)、RES-Q (arXiv:2406.16801)、HyperAgent (arXiv:2409.16299)*
+`;
+const content=document.getElementById('content');content.innerHTML=marked.parse(MD);
+const toc=document.getElementById('toc');
+content.querySelectorAll('h1,h2,h3').forEach((h,i)=>{const id='s'+i;h.id=id;const a=document.createElement('a');a.href='#'+id;a.textContent=h.textContent;a.className=h.tagName.toLowerCase();a.onclick=e=>{e.preventDefault();h.scrollIntoView({behavior:'smooth'});history.replaceState(null,'','#'+id);};toc.appendChild(a);});
+</script></body></html>
