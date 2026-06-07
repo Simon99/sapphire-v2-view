@@ -29,11 +29,18 @@
 <div class="layout"><nav id="toc"><div class="t">目錄</div></nav>
 <main class="content" id="content"></main></div>
 <script>
-const MD=`# LLM 大型代碼庫修改與維護 — 跨論文深度綜述（Phase 5 完整版）
+const MD=`# LLM 大型代碼庫修改與維護 — 跨論文深度綜述（Phase 5 完整版 r2）
 
 > 語料庫 244 篇（2023-09 ~ 2026-05），全文分析 + 8 大類分類 + 本地/全球引用 + 社群特異性。
-> 本報告 = 第一部分「綜論主線」（跨類論點）+ 第二部分「八大類深度剖析」（紮根全 244 篇，223 篇點名）+ 第三部分「橫切議題與落差」。
-> 引用格式 \`(短名 arXiv:id)\`；lc=語料庫內被引、gc=全球被引。配套：tool-use 子議題見 \`subtopic-tooluse.md\`、趨勢熱圖 \`trend-monthly-heatmap.html\`、分類 \`taxonomy-v2-final.md\`。
+> 本報告 = 第一部分「綜論主線」+ 第二部分「八大類深度剖析」（紮根全 244 篇，223 篇點名）+ 第三部分「橫切議題與落差」。
+> 引用 \`(短名 arXiv:id)\`；lc=語料庫內被引、gc=全球被引。配套：tool-use 子議題 \`subtopic-tooluse.md\`、RL 配方 \`subtopic-rl-posttraining.md\`、趨勢熱圖 \`trend-monthly-heatmap.html\`、分類 \`taxonomy-v2-final.md\`。
+
+> ⚠️ **方法論限制（先讀）**
+> 這 244 篇是 **4 個 arXiv query × 時段切片的 search 結果**，不是領域普查。據此務必區分兩類結論的可信度：
+> - **基於「佔比 / 數量 / 趨勢」的結論**（如各大類規模、時間消長）：受 **搜尋取樣偏差 + 新近偏差** 影響，**只代表「這幾個子議題在本語料庫的投入熱度」，不等於業界或全領域趨勢**。當方向性參考，非定量結論。
+> - **基於「論文內部技術內容」的結論**（如某方法的做法、reward 設計、resolve rate 數字、方法間取捨）：不受取樣影響，較硬。
+> - **業界案例的數字**：應用場景差異極大，本報告只列「場景 / 時間 / 模型 / 效益」原始數字，**不做跨案例數字比較**。
+> - **早期模型（GPT-4 世代）的缺點、外部強化工具**：當作「如何優化本地/小模型」的參考，**不當作現行最佳方案的風險項**（模型世代已不同）。
 
 ---
 
@@ -41,23 +48,23 @@ const MD=`# LLM 大型代碼庫修改與維護 — 跨論文深度綜述（Phase
 
 ## 0. 一句話
 
-當 agent 變成標配，這領域的競爭已不在「要不要 agent」，而在三件事：**在百萬行 codebase 找對 code（B，21%）、確認模型真修對且修得安全（F 26% + H 13%）、把能力推到 Python/SWE-bench 以外的真實世界（C 遷移、G 任務、多語言）**。純 agent 架構論文只剩 5%（A，11 篇）——它已沉澱為共用地基。
+當 agent 沉澱為標配，本語料庫內的議題熱度集中在三處：**在大型 codebase 找對 code（B）、檢驗模型是否真修對（F + H）、把能力鋪到 Python/SWE-bench 以外（C 遷移、G 任務、多語言）**。純 agent 框架論文在語料庫中佔比極低（A，5%）——一部分是 agent 標配化，一部分是搜尋設計本就少撈框架論文（見方法論限制）。
 
-## 1. 全景與最大發現
+## 1. 全景：語料庫的議題熱度分佈（非業界趨勢）
 
-244 篇依「論文主軸」歸 8 大類，規模懸殊：F(63) > B(51) > H(32) > C(28) > G(25) > D(18) > E(16) > A(11)。
+244 篇依「論文主軸」歸 8 大類：F(63,26%) > B(51,21%) > H(32,13%) > C(28,11%) > G(25,10%) > D(18,7%) > E(16,7%) > A(11,5%)。
 
-這份分佈本身是論點。三年前做同題，A（agent 框架）會是最大類；到 2026，agent 骨架（plan→localize→edit→test→verify）已被反覆驗證、開源、標準化，「又一個 agent 框架」難以立足。研究能量分流到兩端：**往下**到「找對/修對 code」的硬技術（B、D），**往外**到「能評/能用嗎」的檢驗（F、H）與「Python 以外」的疆界（C、G）。
+**這個分佈是「本語料庫對各子議題的投入熱度」，不是業界研究的真實佔比。** 4 個 query 偏 issue-resolution / repo-level / migration，本就會少撈純 agent 框架論文，所以 A 的 5% 含搜尋偏差成分，不能直接讀成「agent 框架研究萎縮」。可較有把握說的是：**在「對既有 repo 做維護」這個切面上，研究者把力氣放在「找對 code」與「造評測 + 反思」遠多於「再做一個 agent 框架」**。
 
-> **最大發現：「agent 是交付機制不是分類軸」。** 初版分類 A 有 29 篇（凡是「解 issue 的 agent」都歸 A）；逐篇看真正技術貢獻後，18 篇被移到實際貢獻的技術類——AutoCodeRover 核心是 AST 分層檢索(→B1)、LingmaAgent 是知識圖譜+MCTS 定位(→B1)、SpecRover 是 spec inference 修補(→D1)。agent 只是包裝紙。詳見各類深度剖析。
+> **本研究分類原則下的觀察（非領域共識）：「agent 是交付機制不是分類軸」。** 初版 A 有 29 篇（凡「解 issue 的 agent」皆歸 A）；依「論文真正技術貢獻」重判後，18 篇移到技術類——AutoCodeRover 核心是 AST 分層檢索(→B1)、LingmaAgent 是知識圖譜+MCTS 定位(→B1)、SpecRover 是 spec inference 修補(→D1)。這是**我們的分類選擇所凸顯的結構**，換個分類者 A 可能更大；但它有用地指出：多數「agent 論文」的不可替代貢獻其實在某個具體技術環節。
 
-## 2. 三條主軸線（詳見第二部分對應大類）
+## 2. 三條主軸線（詳見第二部分）
 
-**主軸一：戰場下沉到「找對 code」（B，51 篇，第二大類）。** repo-level 維護的第一性難題不是會不會寫，而是十萬行裡找到該改的幾行。lc 最高的非 benchmark 論文幾乎全是定位：LingmaAgent(lc12)、CGM(lc8)、RepoGraph(gc84)、LocAgent(降 86% 成本)。內部譜系從「堆圖工具」走向「RL 收斂成單一精準動作」(RepoNavigator)，並出現對過度工程的自我懷疑(GrepRAG: grep 贏 graph；CTIM-Rover: memory 反降效)——成熟領域的典型訊號。
+**主軸一：戰場下沉到「找對 code」（B，51 篇）。** repo-level 維護的第一性難題是十萬行裡找到該改的幾行。lc 最高的非 benchmark 論文幾乎全是定位：LingmaAgent(lc12)、CGM(lc8)、RepoGraph(gc84)、LocAgent(降 86% 成本)。內部從「堆圖工具」走向「RL 收斂成單一精準動作」(RepoNavigator)，並出現對過度工程的自我懷疑(GrepRAG: grep 贏 graph；CTIM-Rover: memory 反降效)。
 
-**主軸二：評測爆炸與信任危機（F 63 + H 32 = 39%）。** 近四成論文在評/反思而非做方法。F2 任務專門 benchmark 獨佔 41 篇＝任務碎片化。F3+H3+H4 構成自我修正力量：UTBoost 揭 SWE-bench 上百個 patch 標錯、SWE-Bench+ 揭 32.67% solution leakage、「AI patch 引入 11× 漏洞」。這領域正經歷它的「複製危機」。
+**主軸二：評測與反思（F 63 + H 32）。** F2 任務專門 benchmark 獨佔 41 篇＝任務碎片化。F3+H3+H4 構成自我修正：UTBoost 揭 SWE-bench 上百個 patch 標錯、SWE-Bench+ 揭 32.67% solution leakage。
 
-**主軸三：往真實世界擴張（C 28 + G 25 + 多語言）。** SWE-bench 的世界是 Python/開源/有測試/bug fix；企業真實維護是 COBOL/Java/C++、私有、測試不全、整系統遷移。C 類最工業（Google 5 億行遷移省 50% 時間），但遷移 perfect rate 只個位數到十幾趴(JMigBench 11.11%)——LLM 最弱、企業最需要的環節。
+**主軸三：往真實世界擴張（C 28 + G 25 + 多語言）。** SWE-bench 的世界是 Python/開源/有測試/bug fix；真實維護是 COBOL/Java/C++、私有、整系統遷移。C 類最工業，但 benchmark 上 LLM 在遷移的表現普遍偏弱（詳見第三部分業界案例與落差）。
 
 ---
 
@@ -629,7 +636,7 @@ DEI 的設計張力在於：(1) 規模限制——k 增大後性能先增後趨�
 
 ### A.4 Test-Time Scaling：MCTS 與搜尋路徑導向
 
-**CodePilot**（Liang et al. 2026, arXiv:2602.00129，IIT Chicago）將 patch 生成形式化為決策樹搜尋，以 MCTS 在語意單元（code statement）層級探索多條路徑。UCT 公式引入 LLM prior：$\\text{UCT}(s,a) = Q(s,a) + c_1\\sqrt{\\ln N(s)/N(s,a)} + \\beta \\log P_\\theta(a|s)$，以 LLM 先驗偏置探索方向。Reward 採分層設計（0→0.2→0.5+→1.0），先 static check 再執行測試，降低昂貴測試呼叫頻率。
+**CodePilot**（Liang et al. 2026, arXiv:2602.00129，IIT Chicago）將 patch 生成形式化為決策樹搜尋，以 MCTS 在語意單元（code statement）層級探索多條路徑。UCT 公式引入 LLM prior：$\text{UCT}(s,a) = Q(s,a) + c_1\sqrt{\ln N(s)/N(s,a)} + \beta \log P_\theta(a|s)$，以 LLM 先驗偏置探索方向。Reward 採分層設計（0→0.2→0.5+→1.0），先 static check 再執行測試，降低昂貴測試呼叫頻率。
 
 在 SWE-bench Lite 上，同樣使用 Qwen3-8B-Instruct，CodePilot 達 **24.67%**，比 Agentless baseline **19.33%** 高 +5.34 pp。消融顯示 MCTS 單獨貢獻最大（移除後 −4.34%），其次為 thinking mode（−3.67%）和 self-refinement（−3.00%）。作者指出錯誤 fault localization 佔所有失敗的三分之一，是當前主要瓶頸。
 
@@ -938,43 +945,86 @@ RACG 綜述（Tao et al. 2026, arXiv:2510.04905）是 Repository-level Retrieval
 
 # 第三部分　橫切議題、Anchor、趨勢與落差
 
-## 3. 橫切議題：Tool Use 形態之爭
+## 3. 橫切議題：Tool Use 與 RL/訓練配方
 
-agent 標配化後，差異化落在「給 agent 什麼工具、怎麼給」。語料庫呈現四種形態的張力：**多工具堆疊**(CodeAgent 5 工具)、**單工具+RL 收斂**(RepoNavigator 單 jump tool、CodeScout 只給 bash terminal)、**skill/指引檔**(SWE-Skills-Bench 證 skill 效益僅 +1.2%、AGENTS.md 省 ~20% token)、**MCP 工具化**(ToolRosella repo→MCP 61.5%)。並有安全橫切面(prompt injection on Claude Code/Cursor/Codex CLI)。完整分析見 **\`subtopic-tooluse.md\`**。
+agent 標配化後，差異化落在「給 agent 什麼工具、怎麼給」與「怎麼訓」。兩條獨立子議題報告：
+- **Tool Use 形態（依模型世代解讀）**：多工具堆疊 / 單工具+RL / skill / MCP 的取捨；強模型 + RL 下「工具越少越好」（CodeScout RL 後收斂到只用 \`rg\`+\`sed\`）。詳見 \`subtopic-tooluse.md\`。
+- **RL / Post-Training 配方**：reward 設計（execution / localization-F1 / process-PRM）、dataset 準備、每筆格式、資料量 vs model size（RL 1.6K–4K 碾壓 SFT 60K–2M）。詳見 \`subtopic-rl-posttraining.md\`。
 
 ## 4. Anchor 分析：兩種「重要」
 
-「全球 cite × 本地 cite」四象限區分四種角色：
-- **公認核心**（高全球+高本地）：MAGIS(lc4/gc158)、AutoCodeRover(gc229)、Trae(lc18/gc79)、LingmaAgent(lc12/gc60)、SWE-PolyBench(lc13/gc55)——進這領域必引。
+「全球 cite × 本地 cite」四象限：
+- **公認核心**（高全球+高本地）：MAGIS(lc4/gc158)、AutoCodeRover(gc229)、Trae(lc18/gc79)、LingmaAgent(lc12/gc60)、SWE-PolyBench(lc13/gc55)。
 - **通用基石**（高全球+低本地）：CodeAgent(gc299 但本地 0)、CodePlan(gc204)、SWT-Bench(gc128)——跨領域紅但非本主題專屬。
-- **社群專屬新銳**（高本地+低全球）：Prometheus(lc8/gc9)、ExpeRepair(lc11/gc23)、CGM(lc8/gc27)、SemAgent(lc4/gc7)——**領域內部正形成的下一波共識**，比看全球 cite 更早察覺趨勢。
-- **長尾**：C/G 類多落此象限——太新、太應用、互引稀疏。
+- **社群專屬新銳**（高本地+低全球）：Prometheus(lc8/gc9)、ExpeRepair(lc11/gc23)、CGM(lc8/gc27)——**領域內部正形成的下一波共識**，比看全球 cite 更早察覺。
+- **長尾**：C/G 類多落此象限。
 
-## 5. 時間趨勢（月度滑動窗，見 trend-monthly-heatmap.html）
+## 5. 時間趨勢（方向性觀察，非定量結論）
 
-method(B/D) 穩定、benchmark(F) 爆炸、survey/empirical(H) 2026 後發升溫——「從拓荒到成熟」的典型曲線。2026 升溫主角是 H，意味領域從「能做什麼」過渡到「做得對不對、值不值得」。A(agents) 全程稀疏，印證 agent 架構非發論文重點。
+⚠️ 三條限制先講：**(1) 新近偏差**——2026 只到 5 月、越近的論文越易被 search 撈到，2026 的「升」有抓取偏差成分；**(2) 小樣本噪訊**——每期每類絕對數多在個位數~20，佔比擺動易受少數論文影響；**(3) 語料庫非普查**——反映這些子議題的投入消長，非全領域。
 
-## 6. 五大落差與機會
+按佔比的分期觀察（各期總篇：≤2024=44 / 2025H1=46 / 2025H2=75 / 2026(–05)=79）：
+
+| 大類 | ≤2024 | 2025H1 | 2025H2 | 2026(–05) | 方向 |
+|---|---|---|---|---|---|
+| F Benchmark | 25% | 32% | 22% | 25% | 穩定骨幹（非爆炸）|
+| B 定位檢索 | 22% | 21% | 25% | 15% | 2025H2 達頂後回落 |
+| H 實證/survey | 11% | 6% | 13% | 17% | 2026 升 |
+| C Migration | 11% | 13% | 16% | 6% | 2025H2 達頂後回落 |
+| G 維護任務 | 4% | 8% | 6% | 17% | 2026 跳升 |
+| D APR | 6% | 10% | 5% | 7% | 平/噪訊 |
+| E Training | 6% | 4% | 8% | 6% | 平 |
+| A Agents | 11% | 2% | 2% | 3% | 早期掉、之後低 |
+
+**較站得住的 3 個訊號**：
+1. **A（純 agent 框架）2024 後塌縮**：11%→2-3%。2024 那 11% 是早期 MAGIS/HyperAgent/MASAI「搭框架」論文，之後幾乎消失——與 agent 標配化一致。
+2. **H（實證/survey）2026 升溫**：6%→17%（絕對數 3→14），且出現專門 survey（issue resolution 175 篇、agentic 126 篇）+ 大量行為/安全實證——反思期訊號最實。
+3. **G（維護任務）2026 跳升**：8%→17%，doc/test/type/exception 等長尾任務變多——往 issue-resolution 以外擴張。
+
+**一句話（綁限制）**：本語料庫內，純 agent 框架 2024 後即塌縮；2025 能量集中在「找對 code(B)」與「造評測(F)」；2026 動能轉向「反思(H)」與「長尾維護(G)」。但因新近偏差與小樣本，宜當方向性觀察。
+
+## 6. 業界案例：原始數字（場景差異大，不交叉比較）
+
+各案例應用場景、規模、模型、指標都不同，以下只列原始數字供參，**不做跨案例優劣比較**：
+
+| 案例 | 場景 | 時間 | 模型 | 效益（原文數字）|
+|---|---|---|---|---|
+| Google 內部遷移 (arXiv:2501.06972) | int32→int64 ID 遷移，5 億+ 行 codebase | 2025-01 | fine-tuned Gemini | ~50% 時間節省 |
+| Google 內部遷移（同上）| JUnit3→JUnit4，5,359 檔 / 149K 行 | 2025-01 | fine-tuned Gemini | ~87% AI 產出 commit 未經修改 |
+| Google 內部遷移（同上）| Joda→java.time（小範圍）| 2025-01 | fine-tuned Gemini | ~89% 時間節省 |
+| RUSTINE (arXiv:2511.20617) | C→safe Rust，23 個真實 C 程式（27–13,200 LoC）| 2025-11 | LLM pipeline | 100% 編譯成功、87% 功能正確 |
+| AlphaTrans (arXiv:2410.24117) | Java repo 翻譯，neuro-symbolic | 2024-10 | LLM + 靜態分析 | 見原文（分段翻譯 + 雙重驗證）|
+| K³Trans (arXiv:2503.18305) | →Rust，RustRepoTrans 375 任務 | 2025-03 | self-evolving LLM | Pass@1 相對最高 +135.9% |
+
+> 讀法：場景從「5 億行 ID 型別遷移」到「23 個小 C 程式翻 Rust」跨度極大，效益指標也不可共量（時間節省 vs 編譯成功率 vs Pass@1）。**結論不是「migration 只有 X%」，而是「不同場景下 LLM 遷移已有實用價值，但能力與場景強相關，缺乏可共量的成熟度標準」。**
+
+## 7. 落差與機會
 
 | 落差 | 說明 |
 |---|---|
-| **A 評測過剩、方法見頂** | F 有 63 benchmark，issue resolution SOTA 逼近天花板(79.4%)且部分虛高。再造 Python issue bench 邊際價值低；機會在跨語言、長期演進(SWE-CI)、設計約束(SWE-Shield) |
-| **B 遷移剛需但能力最弱** | 企業最需要的 migration perfect rate 僅個位數~十幾趴(JMigBench 11.11%)；C 類僅 28 篇互引稀疏，方法論遠未成熟。最大「高需求×低供給」缺口 |
-| **C 安全盲點** | H3 僅 4 篇卻揭「AI patch 引入 11× 漏洞」；security 散在 G2(8)+H3(4)，缺「修對且修得安全」整合方法 |
-| **D 長尾各自為政** | type inference/logging/exception/issue-commit linking 各 1-2 篇無統一框架，而這正是工程師日常 |
-| **E 定位可能過度工程化** | GrepRAG(grep 贏 graph)、CTIM-Rover(memory 反降效) 兩反例提示部分複雜方法在追 marginal gain |
+| **評測過剩、端到端 SOTA 見頂** | F 有 63 benchmark，issue resolution SOTA 逼近天花板(79.4%)且被 UTBoost/SWE-Bench+ 證部分虛高。再造 Python issue bench 邊際價值低；機會在跨語言、長期演進(SWE-CI)、設計約束(SWE-Shield) |
+| **遷移：場景驅動、缺共量標準** | 業界案例顯示實用價值（Google ~50% 時間省），但 benchmark 表現與場景強相關、無可共量成熟度指標。機會在建立跨場景的遷移能力量尺 |
+| **長尾任務各自為政** | type inference/logging/exception/issue-commit linking 各 1-2 篇無統一框架，而這正是工程師日常 |
+| **定位可能過度工程化** | GrepRAG(grep 贏 graph)、CTIM-Rover(memory 反降效) 兩反例提示部分複雜方法在追 marginal gain |
 
-## 7. 綜合啟示
+## 8. 本地/小模型優化參考（非現行風險項）
 
-1. **agent 已是水電煤**——賣點要從「我做了 agent」轉為「我的 agent 在哪個具體環節(定位/修補/遷移/檢索)有不可替代貢獻」。
-2. **前沿從「能力」轉向「可信」**——能解 79% 之後，下個問題是這 79% 多少是真的、引入多少風險、代價多少 token/技術債。
-3. **真實世界疆界在 Python/SWE-bench 之外**——multi-language、migration、enterprise legacy、security 是藍海也是 LLM 最弱處。誰把 migration perfect rate 從 11% 推到 50%，誰定義下個 SWE-bench。
+以下整理「早期模型缺點 + 外部強化工具」的證據，**定位為「如何優化本地/小模型能力」的參考，而非對當前前沿模型的風險警告**（模型世代已不同）：
+- **外部強化工具如何補模型不足**：早期弱模型靠多工具 scaffold(CodeAgent 5 工具)補能力；強模型時代轉為 RL 收斂出最小工具集(CodeScout \`rg\`+\`sed\`、RepoNavigator 單 jump tool)——對「想用小模型省成本」者，RL + 最小工具是路線參考。
+- **小模型 RL 能在子任務追上大模型**：CodeScout-4B（1.6K 樣本 RL）localization file-F1 68.52 贏 Qwen3-32B；下游把 issue resolution agent 換上 CodeScout-14B 定位，resolve 13.4%→17.2% 且省 17.46% token——本地化部署的成本參考。
+- **早期模型的安全缺點（僅供本地模型訓練時參考，非前沿模型現狀）**：有研究觀察到較弱模型(如 Llama 3.3)的 patch 引入較多新漏洞(arXiv:2507.02976)——這提示「本地/小模型的 repair 需配安全驗證」，但**不可外推為前沿模型的風險**。
+
+## 9. 綜合啟示
+
+1. **agent 已是標配**——賣點要從「我做了 agent」轉為「我的 agent 在哪個具體環節(定位/修補/遷移/檢索)有不可替代貢獻」。
+2. **前沿從「能力」轉向「可信」**——能解 79% 之後，問題是這 79% 多少是真的、代價多少。
+3. **真實世界疆界在 Python/SWE-bench 之外**——multi-language、migration、enterprise legacy 是擴張方向；遷移已有場景化的實用價值，待建可共量標準。
 4. **追蹤社群專屬新銳**（高 lc/低 gc：Prometheus、ExpeRepair、CGM）——領域早期訊號。
-5. **小模型+專門訓練在追上**——CGM(開源 43%)、LocAgent(降 86% 成本)、RepoForge(≤8B SOTA 17.4%)——E 類雖小指向「不必靠 GPT-5，專訓開源小模型在特定環節能打」。
+5. **小模型 + 專門訓練在追上**——CGM(開源 43%)、LocAgent(降 86% 成本)、CodeScout(4B RL 贏 32B)——本地化部署的成本路線。
 
 ---
 
-_配套產出：taxonomy-v2-final.md（分類體系）、classification-detail.md（逐篇）、subtopic-tooluse.md（tool use 子議題）、trend-monthly-heatmap.html（趨勢）、metadata/{local-citation-graph,global-cites}.json（引用資料）。_
+_配套產出：taxonomy-v2-final.md、classification-detail.md、subtopic-tooluse.md、subtopic-rl-posttraining.md、trend-monthly-heatmap.html、metadata/{local-citation-graph,global-cites,trend-monthly}.json。_
 `;
 const content=document.getElementById('content');
 content.innerHTML=marked.parse(MD);
