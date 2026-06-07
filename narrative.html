@@ -983,6 +983,22 @@ agent 標配化後，差異化落在「給 agent 什麼工具、怎麼給」與�
 
 **一句話（綁限制）**：本語料庫內，純 agent 框架 2024 後即塌縮；2025 能量集中在「找對 code(B)」與「造評測(F)」；2026 動能轉向「反思(H)」與「長尾維護(G)」。但因新近偏差與小樣本，宜當方向性觀察。
 
+## 5b. 效能前緣：模型紅利、策略瓶頸、瓶頸位移（比論文數更硬的訊號）
+
+§5 數的是「投入」（論文數），這節數的是「產出」（效能）。把 112 篇報 SWE-bench 的論文逐篇抽自家 headline 數字（嚴格分辨 resolve rate vs localization）+ 底層模型世代，疊時間軸判讀「瓶頸 vs 突破」。完整版見 \`subtopic-perf-bottleneck.md\`、互動圖 \`perf-frontier.html\`。
+
+⚠️ 各篇數字不可嚴格橫比（SWE-bench 子集/harness/條件不同），只作前緣方向與**同世代離散度**判讀。
+
+**發現一：前緣抬升 ≈ 模型紅利，非解法突破。** Verified resolve 前緣 GPT-4 ~14% → Claude 3.x ~62% → Claude 4.x/Gemini ~74-87%，每次大跳都**對齊模型換代**。把這些跳躍歸功給方法是常見誤讀。
+
+**發現二：端到端 issue resolution 已進瓶頸。** 控制模型世代後，**Claude 4.x 上 7 篇 resolve 全擠在 65.4-80.0%（中位 74.6、stdev 僅 4.6）**——策略從 dual-memory、trajectory-evolution、adversarial 到 locate-suggest 機制天差地別，效果卻幾乎都落在 75±5%。**同世代下策略只值 ±5-10pp，前緣推不動**＝方法百花齊放但推不動效果。
+
+**發現三（最有價值）：瓶頸從「定位」位移到「修對」。** localization 早在 2025 達 80-87%（LocAgent 77.7、SweRank 83.2、BLAgent 86.7，近解決），但端到端 resolve 卡 ~80%。**難點不在找到該改的 code，而在生成功能正確且不回歸的 patch + 驗證它真的對。** D 類（patch 驗證）、F3（benchmark 品質研究，UTBoost 揪出上百個假通過）、InfCode/Agent-CoEvo（code↔test 共演化/對抗）的出現，正是社群轉攻下游難點的訊號。
+
+**唯一像「同世代突破」的例外**：小模型 RL 在**定位子任務**——CodeScout（Qwen3-14B+GSPO RL）同 base **+23~34pp file-F1**（見 \`subtopic-rl-posttraining.md\`），但屬定位、非端到端。
+
+> 對研究者：(1) 別把模型紅利當方法功勞，比較要對齊 base model 世代；(2) 在 Claude 4.x 上再疊 agent 巧思期望值僅 ±5-10pp，投報率低；(3) 真正開闊的戰場在「修對 + 驗證」與「定位的 RL 訓練」。
+
 ## 6. 業界案例：原始數字（場景差異大，不交叉比較）
 
 各案例應用場景、規模、模型、指標都不同，以下只列原始數字供參，**不做跨案例優劣比較**：
