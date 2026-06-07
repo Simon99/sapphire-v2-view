@@ -1,37 +1,33 @@
 <!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Infographics — 雙引擎對比</title>
 <style>body{font-family:"Noto Sans CJK TC",-apple-system,sans-serif;background:#f5f6f8;margin:0;padding:24px;color:#1c1e22}
-h1{font-size:22px}.note{color:#6b7280;font-size:13px;max-width:920px;line-height:1.6;margin-bottom:20px}
+h1{font-size:22px}.note{color:#6b7280;font-size:13px;max-width:940px;line-height:1.6;margin-bottom:20px}
 .card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px;margin-bottom:24px}
 .card h3{margin:0 0 12px;font-size:17px}.verdict{font-size:12px;background:#fef3c7;color:#92400e;padding:2px 9px;border-radius:20px;margin-left:8px;font-weight:600}
-.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.col img{width:100%;border:1px solid #eee;border-radius:6px}
-.elab{font-size:13px;font-weight:700;padding:4px 0;margin-bottom:6px}
-.elab.gem{color:#15803d}.elab.oai{color:#9a3412}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}.col img{width:100%;border:1px solid #eee;border-radius:6px}
+.elab{font-size:13px;font-weight:700;padding:4px 0;margin-bottom:6px}.elab.gem{color:#15803d}.elab.oai{color:#9a3412}
 .cn{font-size:12px;color:#555;margin:8px 0 0;line-height:1.5}
-.final{margin-top:16px;border-top:2px dashed #ddd;padding-top:12px}
-.flab{font-size:13px;font-weight:700;color:#15803d;margin-bottom:6px}
-.final img{width:70%;border:1px solid #eee;border-radius:6px}
+.final{margin-top:16px;border-top:2px dashed #ddd;padding-top:12px}.flab{font-size:13px;font-weight:700;color:#15803d;margin-bottom:6px}.final img{width:70%;border:1px solid #eee;border-radius:6px}
 @media(max-width:760px){.pair{grid-template-columns:1fr}.final img{width:100%}}</style></head><body>
-<h1>Sapphire v2 · 策略 Infographics — Gemini vs OpenAI 雙引擎對比</h1>
-<div class="note">每張概念圖用 <b>Gemini Nano Banana Pro 2K</b> 與 <b>OpenAI gpt-image-1</b> 各生一版對照。結論：<b>Gemini 在中文密集 infographic 全面較佳</b>（CJK 正確、資訊密、數字準）；OpenAI 常見左緣/標題裁切與中文 garbled。② Anchor 因屬精確數據、兩版皆捏造數字，改用真實散點圖。點圖可放大。</div>
-<div class="card"><h3>① 策略全景地圖 <span class="verdict">Gemini 勝</span></h3>
+<h1>Sapphire v2 · 策略 Infographics — Gemini vs gpt-image-2 雙引擎對比</h1>
+<div class="note">概念圖各用 <b>Gemini Nano Banana Pro 2K</b> 與 <b>OpenAI gpt-image-2 (3840×2160)</b> 生成對照。結論：換 gpt-image-2 + 防裁切指令後，<b>①③④ 兩引擎已同級</b>（CJK 正確、數字準、不裁切）；<b>② Anchor 兩家皆捏造數字</b>（精確散點生成式做不到），改用真實數據圖。點圖可放大。<br><span style="color:#999">（gpt-image-1 舊版的裁切/garble 問題已由 gpt-image-2 + 安全邊距指令解決）</span></div>
+<div class="card"><h3>① 策略全景地圖 <span class="verdict">兩版皆優</span></h3>
 <div class="pair">
-  <div class="col"><div class="elab gem">Gemini Nano Banana Pro 2K ✅採用</div><a href="infographics/p1-landscape-gemini.jpg" target="_blank"><img src="infographics/p1-landscape-gemini.jpg"></a><p class="cn">資訊密集、8類齊全帶圖示、中文正確、數字全對</p></div>
-  <div class="col"><div class="elab oai">OpenAI gpt-image-1</div><a href="infographics/p1-landscape-openai.png" target="_blank"><img src="infographics/p1-landscape-openai.png"></a><p class="cn">OpenAI：標題裁切、Program Repair 重複出現、用「票」非「篇」、部分字 garbled</p></div>
+  <div class="col"><div class="elab gem">Gemini Nano Banana Pro 2K</div><a href="infographics/p1-landscape-gemini.jpg" target="_blank"><img src="infographics/p1-landscape-gemini.jpg"></a><p class="cn">資訊密集、8類齊全、中文正確、數字全對</p></div>
+  <div class="col"><div class="elab oai">OpenAI gpt-image-2 (3840×2160)</div><a href="infographics/p1-landscape-openai2.png" target="_blank"><img src="infographics/p1-landscape-openai2.png"></a><p class="cn">gpt-image-2：不裁切、版面清爽(編號1-8)、數字全對 — 已追平 Gemini</p></div>
 </div></div>
-<div class="card"><h3>② Anchor 雙軸象限 <span class="verdict">兩版數字都錯 → 改用真實數據圖</span></h3>
+<div class="card"><h3>② Anchor 雙軸象限 <span class="verdict">兩版數字皆捏造 → 用真實數據圖</span></h3>
 <div class="pair">
-  <div class="col"><div class="elab gem">Gemini Nano Banana Pro 2K</div><a href="infographics/p2-anchor-gemini.jpg" target="_blank"><img src="infographics/p2-anchor-gemini.jpg"></a><p class="cn">Gemini 密但公認核心 gc 捏造(MAGIS畫850實為158)；OpenAI 省數字較安全但稀疏+長尾 garbled</p></div>
-  <div class="col"><div class="elab oai">OpenAI gpt-image-1</div><a href="infographics/p2-anchor-openai.png" target="_blank"><img src="infographics/p2-anchor-openai.png"></a><p class="cn">∵ Anchor 是精確數據，生成式會捏造 → 採用下方真實散點圖（核對無誤）</p></div>
-</div><div class="final"><div class="flab">✅ 採用版（真實數據）</div><a href="infographics/p2-anchor-final.png" target="_blank"><img src="infographics/p2-anchor-final.png"></a></div></div>
-<div class="card"><h3>③ RL / 訓練配方 <span class="verdict">Gemini 勝</span></h3>
+  <div class="col"><div class="elab gem">Gemini Nano Banana Pro 2K</div><a href="infographics/p2-anchor-gemini.jpg" target="_blank"><img src="infographics/p2-anchor-gemini.jpg"></a><p class="cn">Gemini：公認核心 gc 捏造(MAGIS畫850實158)</p></div>
+  <div class="col"><div class="elab oai">OpenAI gpt-image-2 (3840×2160)</div><a href="infographics/p2-anchor-openai2.png" target="_blank"><img src="infographics/p2-anchor-openai2.png"></a><p class="cn">gpt-image-2：仍捏造(MAGIS畫gc2686實158) — 精確數據生成式天生做不到</p></div>
+</div><div class="final"><div class="flab">✅ 採用版（真實數據散點，核對無誤）</div><a href="infographics/p2-anchor-final.png" target="_blank"><img src="infographics/p2-anchor-final.png"></a></div></div>
+<div class="card"><h3>③ RL / 訓練配方 <span class="verdict">兩版皆優</span></h3>
 <div class="pair">
-  <div class="col"><div class="elab gem">Gemini Nano Banana Pro 2K ✅採用</div><a href="infographics/p3-rl-gemini.jpg" target="_blank"><img src="infographics/p3-rl-gemini.jpg"></a><p class="cn">四區塊完整、餅圖/資料量數字全對(1.6K/4K/60K/2M)</p></div>
-  <div class="col"><div class="elab oai">OpenAI gpt-image-1</div><a href="infographics/p3-rl-openai.png" target="_blank"><img src="infographics/p3-rl-openai.png"></a><p class="cn">OpenAI：Repo.vgor、Clean-PR 重複、Test pars 等 garbled</p></div>
+  <div class="col"><div class="elab gem">Gemini Nano Banana Pro 2K</div><a href="infographics/p3-rl-gemini.jpg" target="_blank"><img src="infographics/p3-rl-gemini.jpg"></a><p class="cn">四區塊完整、餅圖/資料量數字全對</p></div>
+  <div class="col"><div class="elab oai">OpenAI gpt-image-2 (3840×2160)</div><a href="infographics/p3-rl-openai2.png" target="_blank"><img src="infographics/p3-rl-openai2.png"></a><p class="cn">gpt-image-2：深色版、餅圖6/2/2/1/1、資料量1.6K/4K/60K/2M 全對</p></div>
 </div></div>
-<div class="card"><h3>④ Tool Use 形態演進 <span class="verdict">Gemini 勝</span></h3>
+<div class="card"><h3>④ Tool Use 形態演進 <span class="verdict">兩版皆優</span></h3>
 <div class="pair">
-  <div class="col"><div class="elab gem">Gemini Nano Banana Pro 2K ✅採用</div><a href="infographics/p4-tooluse-gemini.jpg" target="_blank"><img src="infographics/p4-tooluse-gemini.jpg"></a><p class="cn">時間軸三期完整、數據 callout 全對(80%/~20%/24.28→13.71)</p></div>
-  <div class="col"><div class="elab oai">OpenAI gpt-image-1</div><a href="infographics/p4-tooluse-openai.png" target="_blank"><img src="infographics/p4-tooluse-openai.png"></a><p class="cn">OpenAI：標題裁切、中文多處 garbled(「tol US盯」「詨計哲苹」)</p></div>
+  <div class="col"><div class="elab gem">Gemini Nano Banana Pro 2K</div><a href="infographics/p4-tooluse-gemini.jpg" target="_blank"><img src="infographics/p4-tooluse-gemini.jpg"></a><p class="cn">時間軸三期完整、數據callout全對</p></div>
+  <div class="col"><div class="elab oai">OpenAI gpt-image-2 (3840×2160)</div><a href="infographics/p4-tooluse-openai2.png" target="_blank"><img src="infographics/p4-tooluse-openai2.png"></a><p class="cn">gpt-image-2：不裁切、80%/~20%/24.28→13.71 全對</p></div>
 </div></div>
 </body></html>
