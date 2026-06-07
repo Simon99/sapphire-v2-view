@@ -1,0 +1,209 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<title>子議題: benchmark 測試 dataset 內容與格式差異</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1c1e22;--mut:#6b7280;--line:#e5e7eb;--accent:#2563eb}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans CJK TC",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.85}
+.layout{display:flex;max-width:1180px;margin:0 auto;gap:24px;padding:24px 20px 80px}
+#toc{position:sticky;top:20px;align-self:flex-start;width:230px;flex-shrink:0;font-size:13px;max-height:90vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+#toc .t{font-weight:700;margin-bottom:8px}#toc a{display:block;color:var(--mut);text-decoration:none;padding:3px 0;line-height:1.4}
+#toc a:hover{color:var(--accent)}#toc a.h1{font-weight:600;color:var(--ink);margin-top:8px}#toc a.h3{padding-left:12px;font-size:12px}
+.content{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 40px 50px}
+.content h1{font-size:26px;border-bottom:3px solid var(--accent);padding-bottom:8px;margin-top:36px}
+.content h2{font-size:21px;margin-top:32px;border-left:4px solid var(--accent);padding-left:12px}
+.content h3{font-size:17px;margin-top:24px;color:#334155}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th{background:#eef2f7;border:1px solid var(--line);padding:7px 10px;text-align:left}
+.content td{border:1px solid var(--line);padding:7px 10px;vertical-align:top}
+.content blockquote{border-left:4px solid #fbbf24;background:#fffbeb;margin:14px 0;padding:10px 16px;border-radius:0 6px 6px 0;color:#444}
+.content code{background:#eef0f3;padding:1px 5px;border-radius:4px;font-size:13px;font-family:ui-monospace,monospace}
+.content pre{background:#1e2233;color:#e2e8f0;padding:12px 14px;border-radius:8px;overflow:auto;font-size:12.5px}
+.content pre code{background:none;color:inherit}.content hr{border:none;border-top:1px solid var(--line);margin:30px 0}.content a{color:var(--accent)}
+@media(max-width:820px){#toc{display:none}.content{padding:8px 18px 40px}}
+</style></head><body><div class="layout"><nav id="toc"><div class="t">目錄</div></nav>
+<main class="content" id="content"></main></div>
+<script>
+const MD=`# 子議題：benchmark 測試 dataset 的內容與格式差異
+
+> **這篇在回答什麼**：這些 benchmark 都號稱在考「AI 會不會改/修大型代碼庫」，但**每一份的「考卷格式」其實天差地別**——給 AI 看什麼、要 AI 交什麼、怎麼算對。本篇把 F 類 63 篇 benchmark 逐篇拆出「一道題（一個 instance）長什麼樣」，再比較它們沿哪些維度分岔。
+> **不是** benchmark 清單，是**格式差異的地圖**。資料：\`metadata/_benchformat/out-*.json\`（63 篇，61 篇真的有提出 dataset）。
+> ⚠️ 以下數字是「本語料庫這 63 篇」的分布，非全領域普查；一個 benchmark 常同時落在多類（多標籤計數）。
+
+---
+
+## 一句話總結
+
+**SWE-bench 定下了一個被大家默認的「標準考卷」格式，但這 61 個 benchmark 沒一個完全照抄，沿著八條軸線各自改寫。改得最兇的是兩端：「給 AI 看什麼」和「怎麼算對」。連最經典的「用隱藏測試判 patch」都只剩 19/63 在用——它早就不是多數了。**
+
+---
+
+## 先看懂「標準考卷」長什麼樣（SWE-bench norm）
+
+幾乎每篇論文介紹自己時都說「Unlike SWE-bench…（跟 SWE-bench 不一樣的是…）」，所以先把 SWE-bench 這張被當成基準的考卷攤開：
+
+**一道 SWE-bench 題目（instance）長這樣：**
+
+\`\`\`
+給 AI 看的（輸入）：
+  ├─ 一段 GitHub issue 文字（例如「呼叫 X 函式時拋出 KeyError」）
+  └─ 整個 repo 在某個 commit 的快照（AI 自己去翻、自己找哪裡要改）
+
+要 AI 交的（輸出）：
+  └─ 一個 patch（diff，改了哪幾行）
+
+怎麼算對（驗證）：
+  └─ 把 patch 套上去，跑「隱藏測試」：
+       原本失敗的測試要變成功 (Fail→Pass)，
+       且原本成功的不能被改壞 (Pass→Pass)。
+       全達標 = resolved，否則 = 沒解掉。判分只有「對 / 不對」。
+
+語言：Python。題目來源：人工從合併過的 PR 篩出來。
+\`\`\`
+
+下面八節，就是「別人沿哪條軸、怎麼改掉這張考卷」。每節先一句白話，再給例子。
+
+---
+
+## 軸一：給 AI 看什麼（輸入格式）— 改得最劇烈
+
+**白話**：SWE-bench 給的是「issue 文字 + 整個 repo」。但很多 benchmark 換掉了輸入，主要差在**「要不要 AI 自己找位置」**。實測：41/63 給某種文字描述、56/63 給 repo，但**給法**裂成五種：
+
+| 範式 | AI 拿到什麼 | 代表 benchmark |
+|---|---|---|
+| **① issue 文字**（SWE-bench 式） | issue + 整個 repo，自己找位置 | SWE-bench-java、SWE-PolyBench、OmniGIRL、Rust-SWE-bench |
+| **② 純需求描述（沒有 issue）** | 一段「要做什麼」的自然語言，沒 bug 報告 | DevEval；**FeatBench 還故意禁止任何程式碼提示**，逼 AI 純靠需求推 |
+| **③ 挖空的程式碼（填空題）** | 直接把目標檔/函式端到 AI 面前，挖個洞要它補 | RepoCod（挖空函式體）；**ReCUBE 連題目文字都沒有，只給遮罩過的原始檔**；TypyBench（剝光型別要你補回）；VersiCode（遮版本相關的 API） |
+| **④ 多輪對話 / 動態狀態** | 不是一次給完，邊聊邊浮現需求 | SR-Eval（平均 4.19 輪需求逐步給）、CAB、CodeRepoQA、SyncBench（模擬代碼被別人改過後要你跟上） |
+| **⑤ 配對 / 圖片 / 依賴圖** | 特殊輸入 | JitVul（給「漏洞版+修復版」一對）、OmniGIRL/ML-Bench（附**截圖**）、RepoExec/DependEval（附**依賴關係圖**） |
+
+> **重點**：①把 AI 丟進整個 repo，「找對位置」是題目的一部分；③④直接把要改的地方端到面前，等於**把「定位」這步從考題裡拿掉、只考「會不會寫」**。越來越多 benchmark 走後者，正呼應另一份報告的發現「定位已被解決，瓶頸移到改對」（見 \`subtopic-perf-bottleneck.md\`）。
+
+---
+
+## 軸二：要 AI 交什麼（輸出格式）
+
+**白話**：SWE-bench 要的是 patch。但「交什麼」也裂成 11 種，patch 雖仍最多（32/61），已不到壓倒性多數。
+
+| 要 AI 交的東西 | 幾篇 | 例子 |
+|---|---:|---|
+| **patch（改了哪幾行）** | 32 | SWE-bench 全系列、FEA-Bench |
+| **一整個函式** | 6 | DevEval、RepoCod、MRG-Bench |
+| **一段文字答案**（不是程式碼！） | 6 | SWE-QA、StackRepoQA、Code-QA-Bench |
+| **能跑出結果的東西 / 部署好的服務** | 3 | GitTaskBench（要真的跑出音訊/影片）、ABC-Bench（要部署起一個 HTTP 後端） |
+| **生成測試**（任務反過來） | 2 | **SWT-Bench：不是修 bug，是要你寫出能抓到這個 bug 的測試**、TAM-Eval |
+| **是非標籤** | 2 | JitVul / ReposVul（判「這段有沒有漏洞」） |
+| **code review 評論** | 2 | AACR-Bench、CodeFuse-CR-Bench |
+| **其他特殊** | 4 | TypyBench（型別檔）、MultiLogBench（一行 log）、RepoReason（讀程式**預測它會算出什麼值**） |
+
+> **容易被忽略的反轉題**：SWT-Bench（寫測試）、RepoReason（讀程式預測結果）根本不產 patch，傳統 SWE-bench 的判分機制完全套不上去。
+
+---
+
+## 軸三：怎麼算對（驗證方式）— 最容易被誤用來比較的一軸 ⭐
+
+**白話**：這是最關鍵的差異。**同樣寫「80% 通過」，在不同 benchmark 根本不是同一把尺。** 有的真的跑測試，有的拿 AI 來打分，有的看「跑得快多少」。多標籤分布：
+
+| 怎麼算對 | 幾篇 | 性質 |
+|---|---:|---|
+| **跑題目附帶的測試**（Pass@k） | 25 | 測試**跟著題目一起給**，不是隱藏的 |
+| **跑隱藏測試**（SWE-bench 正統） | 19 | F2P+P2P，patch 套上去跑前後 |
+| **找另一個 AI 來打分**（LLM-as-judge） | 14 | 問答/review/理解題常用，給 1~N 分 |
+| **找人來評** | 12 | 多半是輔助、驗證 AI 打分準不準 |
+| **字面比對 / 相似度**（EM、BLEU） | 16 | 補全、標籤、文字題 |
+| **看跑得快多少**（performance speedup） | 4 | **判分是「加速幾倍」這種實數，不是對/錯** |
+| **安全掃描 / CI 全跑 / 其他** | 6 | A.S.E 用漏洞掃描器數漏洞增減；CI-Repair-Bench 直接重跑整條 GitHub Actions |
+
+幾個「非標準算法」值得單獨記：
+- **看效能（SWE-Perf、SWE-fficiency、FormulaCode）**：對錯變成「加速比」這種連續數字，FormulaCode 還跨 264 個工作負載取幾何平均。
+- **安全掃描（A.S.E）**：不跑功能測試，用 CodeQL 數 patch 前後漏洞數變化。
+- **CI 全流程（CI-Repair-Bench）**：不是只跑測試，是把整條 GitHub Actions 重跑一遍——更真，但更難控。
+- **質疑既有 benchmark 本身（SWE-bench+、UTBoost）**：這兩篇不出新題，而是指出「舊 SWE-bench 有答案洩漏、測試太弱，導致假的 resolved」。
+
+> **這軸是「benchmark 分數不能直接比」的根本原因**：隱藏測試的 80%、附帶測試的 80%、AI 打分的 80 分、加速 1.8×，是四種完全不同的東西。看到跨 benchmark 的成績比較，第一件事就是先確認「它們算對的方式一不一樣」。
+
+---
+
+## 軸四：考的任務早就不只 bug-fix
+
+**白話**：SWE-bench 考 Python 修 bug。現在 F 類覆蓋的任務（多標籤）：
+
+> 寫程式/補全 30 · 修 bug 17 · 問答/理解 10 · 加功能 7 · 定位 7 · 測試維護 5 · 重構 4 · 效能 4 · 安全 3 · code review 2 · 文件 1 · logging 1 · 型別 1 · 版本遷移 1
+
+而且**換任務常常就得換考卷格式**：考效能 → 改用加速比驗證 + 給你效能測試腳本；考安全 → 改用漏洞掃描 + 給你 CVE 資訊；考文件 → 用問答間接測（SWD-Bench）；考測試維護 → 任務反轉成「寫測試」（SWT-Bench）。**任務和格式綁在一起，不是各自獨立的。**
+
+---
+
+## 軸五：考幾種語言
+
+**白話**：單語言（多為 Python）30 篇、多語言 31 篇，差不多一半一半。多語言化是 2025–2026 的明顯方向。
+
+語言出現次數：Python 55 · Java 27 · JavaScript 17 · Go 14 · TypeScript 12 · C 10 · C++ 9 · C# 8 · Rust 7…
+
+- 最廣：SWE-Bench++（11 語言）、SWE-Compass（10 語言）。
+- 專語言版：Rust-SWE-bench、SWE-bench-java、MobileDev-Bench（Android/React Native/Flutter）。
+- **代價**：每多一種語言就要多配一套 build/測試環境（Maven、npm、cargo…），所以才會冒出 SWE-Factory、SWE-rebench 這種主打「自動配環境」的工具。
+
+---
+
+## 軸六：題目從哪來、怎麼防作弊（污染）
+
+**白話**：題目大多來自 GitHub 的 PR/issue（57/63），但**「怎麼蒐集的」直接決定會不會被模型訓練時偷看過**（污染）。
+
+| 構建方式 | 幾篇 | 好壞 |
+|---|---:|---|
+| **人工挑選** | 17 | 品質高，但慢、會過時 |
+| **全自動流水線** | 25 | 可持續，**SWE-MERA 每月自動更新新題** 防污染 |
+| **合成造題**（用 AST 自動注入 bug） | 3 | RepoDebug：規模大、可多語言，但 bug 偏離真實 |
+| **私有資料** | 2 | GITS-Eval 用 Google 內部 monorepo——天生不可能被公開語料污染，但別人無法重現 |
+| **Stack Overflow** | 3 | StackRepoQA 用 SO 問題配 repo |
+
+> **防污染已經是一級格式設計目標**：UTBoost、SWE-bench+ 證明早期題目有「答案外洩 + 測試太弱」的問題；回應方式就是「自動持續更新（只收模型訓練截止日之後的新題）」或「用私有資料」。**判讀任何 SWE-bench 分數，務必確認題目是不是在模型訓練截止後才出現的。**
+
+---
+
+## 軸七：一次給完，還是邊做邊給（互動方式）
+
+**白話**：SWE-bench 是「一次給完，AI 答一次，判分」。7 篇改成多輪/迭代，題目的「時間結構」整個變了：
+
+- **多輪對話**：SR-Eval（需求一輪一輪浮現）、CAB、CodeRepoQA。
+- **迭代修復**：SWE-CI（雙 agent 最多跑 20 輪 CI 循環）、SyncBench（動態恢復）。
+- **連續學習課程**：SWE-Bench-CL（把題目按時間排成序列，測 AI 會不會「學了新的忘了舊的」）——題目之間有先後依賴，不再各自獨立。
+
+---
+
+## 軸八：判分有多細（對/錯 → 分數 → 多維評分）
+
+**白話**：就算都「跑測試」，給分尺度也分三層：
+1. **只有對/錯**：resolved or not（SWE-bench）。
+2. **連續分數**：加速比、覆蓋率提升、相似度。
+3. **多維評分表**：RACE-bench 連「中間推理過程」都評分；CodeFuse-CR-Bench 每題有 **22 個結構化欄位**；SWE-Compass 8 種任務各有各的指標。
+
+---
+
+## 給你的 5 個實用結論
+
+1. **「SWE-bench 式」已經是少數**：隱藏測試判 patch 只剩 19/63。輸入、輸出、驗證三端都各自長出 5 種以上變體。
+2. **格式跟著「想測什麼能力」走**：想測「會不會找位置」→ 給整個 repo；想測「會不會寫」→ 直接給挖空的目標；想測效能 → 用加速比；想測理解 → 用問答 + AI 打分。**沒有萬用考卷。**
+3. **比成績前先對齊「怎麼算對」**：hidden-test ≠ 附帶 test ≠ AI 打分 ≠ 加速比。這是跨 benchmark 比較的頭號陷阱。
+4. **防污染是新重點**：優先信「訓練截止後才出的新題」或「自動持續更新」的 benchmark。
+5. **別漏掉反轉題**：寫測試（SWT-Bench）、讀程式預測值（RepoReason）、補型別（TypyBench）、補 log（MultiLogBench）——這些也是「維護大型代碼庫」的能力切面，但完全不長 SWE-bench 的樣子。
+
+---
+
+## caveat（使用本報告的注意事項）
+
+- 統計範圍是**本語料庫 F 類 63 篇**，非全領域普查；多標籤計數會重複。
+- 多數欄位來自 frag 全文分析（少數補讀 PDF），確切 instance 數/子集以原論文為準。
+- 「驗證方式」是人工歸併，混合型（如 CODETASTE = 測試 + AI 打分）會落在多桶。
+- **benchmark 不可只憑單一成績橫比**——本報告正是要說明為什麼不可比。
+
+---
+
+_資料：\`metadata/_benchformat/out-*.json\`（63 篇逐篇 schema）。配套：F 類分類 \`reports/_section-F.md\`；效能瓶頸脈絡 \`subtopic-perf-bottleneck.md\`。_
+`;
+const content=document.getElementById('content');content.innerHTML=marked.parse(MD);
+const toc=document.getElementById('toc');
+content.querySelectorAll('h1,h2,h3').forEach((h,i)=>{const id='s'+i;h.id=id;const a=document.createElement('a');a.href='#'+id;a.textContent=h.textContent;a.className=h.tagName.toLowerCase();a.onclick=e=>{e.preventDefault();h.scrollIntoView({behavior:'smooth'});history.replaceState(null,'','#'+id);};toc.appendChild(a);});
+</script></body></html>
