@@ -1,0 +1,991 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<title>Sapphire v2 — 跨論文深度綜述</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1c1e22;--mut:#6b7280;--line:#e5e7eb;--accent:#2563eb}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans CJK TC",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.85}
+.layout{display:flex;max-width:1180px;margin:0 auto;gap:24px;padding:24px 20px 80px}
+#toc{position:sticky;top:20px;align-self:flex-start;width:230px;flex-shrink:0;font-size:13px;max-height:90vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+#toc .t{font-weight:700;margin-bottom:8px;font-size:13px}
+#toc a{display:block;color:var(--mut);text-decoration:none;padding:3px 0;line-height:1.4}
+#toc a:hover{color:var(--accent)}
+#toc a.h1{font-weight:600;color:var(--ink);margin-top:8px}
+#toc a.h3{padding-left:12px;font-size:12px}
+.content{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 40px 50px}
+.content h1{font-size:26px;border-bottom:3px solid var(--accent);padding-bottom:8px;margin-top:36px}
+.content h2{font-size:21px;margin-top:32px;border-left:4px solid var(--accent);padding-left:12px}
+.content h3{font-size:17px;margin-top:24px;color:#334155}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th{background:#eef2f7;border:1px solid var(--line);padding:7px 10px;text-align:left}
+.content td{border:1px solid var(--line);padding:7px 10px;vertical-align:top}
+.content blockquote{border-left:4px solid #fbbf24;background:#fffbeb;margin:14px 0;padding:10px 16px;border-radius:0 6px 6px 0;color:#444}
+.content code{background:#eef0f3;padding:1px 5px;border-radius:4px;font-size:13px;font-family:ui-monospace,monospace}
+.content hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+.content a{color:var(--accent)}
+@media(max-width:820px){#toc{display:none}.content{padding:8px 18px 40px}}
+</style></head><body>
+<div class="layout"><nav id="toc"><div class="t">目錄</div></nav>
+<main class="content" id="content"></main></div>
+<script>
+const MD=`# LLM 大型代碼庫修改與維護 — 跨論文深度綜述（Phase 5 完整版）
+
+> 語料庫 244 篇（2023-09 ~ 2026-05），全文分析 + 8 大類分類 + 本地/全球引用 + 社群特異性。
+> 本報告 = 第一部分「綜論主線」（跨類論點）+ 第二部分「八大類深度剖析」（紮根全 244 篇，223 篇點名）+ 第三部分「橫切議題與落差」。
+> 引用格式 \`(短名 arXiv:id)\`；lc=語料庫內被引、gc=全球被引。配套：tool-use 子議題見 \`subtopic-tooluse.md\`、趨勢熱圖 \`trend-monthly-heatmap.html\`、分類 \`taxonomy-v2-final.md\`。
+
+---
+
+# 第一部分　綜論主線
+
+## 0. 一句話
+
+當 agent 變成標配，這領域的競爭已不在「要不要 agent」，而在三件事：**在百萬行 codebase 找對 code（B，21%）、確認模型真修對且修得安全（F 26% + H 13%）、把能力推到 Python/SWE-bench 以外的真實世界（C 遷移、G 任務、多語言）**。純 agent 架構論文只剩 5%（A，11 篇）——它已沉澱為共用地基。
+
+## 1. 全景與最大發現
+
+244 篇依「論文主軸」歸 8 大類，規模懸殊：F(63) > B(51) > H(32) > C(28) > G(25) > D(18) > E(16) > A(11)。
+
+這份分佈本身是論點。三年前做同題，A（agent 框架）會是最大類；到 2026，agent 骨架（plan→localize→edit→test→verify）已被反覆驗證、開源、標準化，「又一個 agent 框架」難以立足。研究能量分流到兩端：**往下**到「找對/修對 code」的硬技術（B、D），**往外**到「能評/能用嗎」的檢驗（F、H）與「Python 以外」的疆界（C、G）。
+
+> **最大發現：「agent 是交付機制不是分類軸」。** 初版分類 A 有 29 篇（凡是「解 issue 的 agent」都歸 A）；逐篇看真正技術貢獻後，18 篇被移到實際貢獻的技術類——AutoCodeRover 核心是 AST 分層檢索(→B1)、LingmaAgent 是知識圖譜+MCTS 定位(→B1)、SpecRover 是 spec inference 修補(→D1)。agent 只是包裝紙。詳見各類深度剖析。
+
+## 2. 三條主軸線（詳見第二部分對應大類）
+
+**主軸一：戰場下沉到「找對 code」（B，51 篇，第二大類）。** repo-level 維護的第一性難題不是會不會寫，而是十萬行裡找到該改的幾行。lc 最高的非 benchmark 論文幾乎全是定位：LingmaAgent(lc12)、CGM(lc8)、RepoGraph(gc84)、LocAgent(降 86% 成本)。內部譜系從「堆圖工具」走向「RL 收斂成單一精準動作」(RepoNavigator)，並出現對過度工程的自我懷疑(GrepRAG: grep 贏 graph；CTIM-Rover: memory 反降效)——成熟領域的典型訊號。
+
+**主軸二：評測爆炸與信任危機（F 63 + H 32 = 39%）。** 近四成論文在評/反思而非做方法。F2 任務專門 benchmark 獨佔 41 篇＝任務碎片化。F3+H3+H4 構成自我修正力量：UTBoost 揭 SWE-bench 上百個 patch 標錯、SWE-Bench+ 揭 32.67% solution leakage、「AI patch 引入 11× 漏洞」。這領域正經歷它的「複製危機」。
+
+**主軸三：往真實世界擴張（C 28 + G 25 + 多語言）。** SWE-bench 的世界是 Python/開源/有測試/bug fix；企業真實維護是 COBOL/Java/C++、私有、測試不全、整系統遷移。C 類最工業（Google 5 億行遷移省 50% 時間），但遷移 perfect rate 只個位數到十幾趴(JMigBench 11.11%)——LLM 最弱、企業最需要的環節。
+
+---
+
+# 第二部分　八大類深度剖析
+
+_以下八節由各類專責分析，紮根該類全部 frag，含方法譜系/技術張力/演進/落差。_
+
+## F — Benchmark 與評估體系
+
+### F.1 SWE-bench 生態系的擴張與危機
+
+2024 年以前，LLM 程式維護能力的評估幾乎等同於 SWE-bench：以 GitHub issue 為輸入、fail-to-pass 測試通過為 oracle，模型需在真實 Python repository 中定位並修復 bug。這個框架從設計之初就內建一個核心張力：**評估成本低（自動執行測試）但正確性保證脆弱（測試品質即 oracle 品質）**。SWE-Bench+（arXiv:2410.06992）系統量化了這個脆弱性：在 SWE-bench Lite 中，32.67% 的解答在未接觸 issue 的情況下就已被預埋（solution leakage），31.08% 的 instance 因測試太弱無法過濾低品質修復；修正後，AutoCodeRover+GPT-4o 的解決率從表面 22% 降到 3.83%——排行榜虛報近 6 倍。UTBoost（arXiv:2506.09289）進一步確認：28.4% 的現有修復 patch 存在 erroneous patch 問題，修正後整個排行榜順序重排，Agentless+Claude 等主流工具的相對差距縮小達 40.9%。
+
+這個危機催生了兩類回應。第一類是**自動化 benchmark 建構流水線**：SWE-Factory（arXiv:2506.10954）提出以 repo 演化歷史（PR 關閉事件）為輸入、自動生成跨語言 instance 的管線，核心指標 fail-to-pass (F2P) rate 為 50.2%（Python 63.9%、其他語言 15–43%），顯示自動建構的品質隨語言複雜度下降；SWE-rebench（arXiv:2505.20411）從 GitHub issue 追蹤抓取 21,336 個任務自動構建大規模語料，GPT-4.1 在此基準最優僅 31.1%；SWE-Bench++（arXiv:2512.17419）則覆蓋 11 種語言、3,971 個 repository，打破 Python 壟斷。第二類是**動態/滾動更新機制**：SWE-MERA（arXiv:2507.11059）按月滾動補充新 instance，防止模型因訓練集覆蓋而虛高；FeatBench（arXiv:2509.22237）的「no code hint」設計每月引入未出現在任何訓練集的新 feature request，DeepSeek-R1 最佳 27.8% pass@1 於 SWE-MERA，Trae-agent+GPT-5 最佳 29.94% 於 FeatBench。
+
+### F.2 多語言與多任務的全維擴張
+
+SWE-bench 的 Python 壟斷在 2024–2025 年全面瓦解。SWE-PolyBench（arXiv:2504.08703）以 4 種語言、2,110 個 instance 測試，Aider 最佳解決率 14.1%，其中 TypeScript 最低（約 8%），Python 最高。SWE-bench-java（arXiv:2408.14354）是首個 Java 專屬 benchmark，最佳解決率僅 9.89%；Rust-SWE-bench（arXiv:2602.22764）測 500 個 Rust issue，RustForger 達 28.6%，但孤立 workspace 設計是關鍵——無此設計則成功率近 0；OmniGIRL（arXiv:2505.04606）以 4 語言 + 多模態輸入，GPT-4o+Agentless 最佳僅 8.6%；MRG-Bench（arXiv:2508.02998）比較 Python/Java/Go，發現 68% 以上的失敗源於「不知道改什麼」（What），而非「不知道怎麼改」（How）。跨語言一致的結論是：**Python 到非 Python 存在系統性 15–40% 解決率下降，且語言生態複雜性（build system、type system、package manager）比語法難度影響更大**。
+
+任務類型的多元化同樣徹底重構了評估地圖。FEA-Bench（arXiv:2503.06680）聚焦 feature 實作（而非 bug 修復），最佳 DeepSeek-R1 僅 9.92%，比同期 bug-fix 基準低 20 個百分點，確認 feature implementation 是更難的任務。SWE-Perf（arXiv:2507.12415）量化效能優化：所有 LLM 在 HPCS（harmonic performance change score）指標遠低於人類專家（1.48% vs. 10.85%），且 agent 在 long-horizon 優化任務上傾向「在已優化路徑上做小幅調整」而非重新設計演算法。SWE-fficiency（arXiv:2511.06090）與 FormulaCode（arXiv:2603.16011）均確認效能優化是當前 LLM 的絕對短板。SWE-Refactor（arXiv:2602.03712）測試 Java refactoring，DeepSeek-V3 最佳 41.58%，multi-agent 策略最優；CODETASTE（arXiv:2603.04177）測多檔 refactoring，GPT-5.2 Alignment 69.6% 但 open track 僅 7.7%，顯示指令跟隨能力才是 refactoring 瓶頸。GitTaskBench（arXiv:2508.18993）以 54 個真實 git 任務跨 7 種操作模態，OpenHands+Claude 3.7 TPR 48.15%，任務難度隨操作鏈長度指數上升。
+
+### F.3 Pass Rate 之外：指標危機與多維量測
+
+多份研究收斂到同一個觀察：**pass rate 是充分但非必要的品質指標**，且往往是誤導的代理指標。
+
+SWE-Shield（arXiv:2604.05955）測試 design constraint compliance（DSR），發現 DSR 與 pass rate 近乎正交：通過測試的修復中有 50–61% 違反明確的設計約束（命名慣例、模組邊界、API 合約）；DSR 最佳模型 Claude 僅 39–50%。SWT-Bench（arXiv:2406.12952）評估 test generation ability（從 issue 生成能重現問題的測試），發現 repair ability 與 test generation ability 正交——擅長修復的模型未必擅長生成測試，SWE-AGENT pass@1 從 15.9% 升至 18.5%，但測試生成成功率獨立變動。JitVul（arXiv:2503.03586）以 pairwise accuracy (pAcc) 取代傳統 F1 評估漏洞偵測，發現 pAcc 與 F1 完全去耦——F1 高的模型 pAcc 可能極低，暴露「偽高 recall」問題。
+
+RepoExec（arXiv:2406.11927）引入 Dependency Invocation Rate (DIR) 量測生成程式碼是否真的呼叫了 repository 既有函式（而非重新實作），DeepSeek-V3 在 pass@1 達 80.35% 時 DIR 仍有缺口，顯示模型傾向「暗中複製」而非複用。SWE-Skills-Bench（arXiv:2603.15401）注入特定技能知識，發現 80% 的技能注入 ΔP=0，部分甚至負向，說明「能力短板」不在資訊缺乏而在推理整合。
+
+**評估指標本身也成為研究對象**：VersiCode（arXiv:2406.07411）提出 Critical Diff Check (CDC)，對傳統 EM 加五條規則過濾，CDC 與 pass@1 的 Pearson r=0.9995，遠高於 EM（r=0.8974），成為靜態指標的可靠動態代理。SWE-CI（arXiv:2603.03823）改以 CI 全重執行（而非容器化 test-only）為 oracle，Claude Opus 在此設定下 91% 解決率，其餘模型 <50%——CI-native oracle 大幅拉開了模型間距離。CI-Repair-Bench（arXiv:2604.27148）以 GitHub Actions 重執行為驗證標準，覆蓋 12 種 CI 失敗類型（Code Formatting/Linting/Test Failure/Dependency Issues 等），最佳 GPT-5-mini Pass@1 僅 18.9%，且 Dependency Issues 與 Environment Error 幾乎無法修復（成功率 ≤2%），揭示**訊號局部性（signal locality）才是修復成功的核心因素**，不是模型強弱。
+
+### F.4 Repository 理解與 QA 評估
+
+評估 LLM 是否「讀懂」整個 repository 形成了一條平行的研究脈絡。CodeRepoQA（arXiv:2412.14764）建構 585K 多輪 QA，Gemini-1.5-Pro 最佳 0.1826/1；CoReQA（arXiv:2501.03447）以 1,563 個跨檔 QA pair 測試，發現 BM25 retrieval 對程式碼問題根本不足夠；SWE-QA（arXiv:2509.14635）以 720 個 QA pairs 測試 agent 在完整 repository 中的問題解答，GPT-5.1+OpenHands 最佳 70.79/100；RepoReason（arXiv:2601.03731）以白盒診斷框架分析失敗根因，Claude-Sonnet-4.5 達 66.98%，Data Flow Interpretation (DFI) 是最強失敗瓶頸。
+
+Code-QA-Bench（arXiv:2605.29277）更進一步，以三條件設計（closed-book / code-only / documented）分離程式碼理解與文件記憶：程式碼存取的增益（+0.23）是文件增益（+0.071）的三倍，確認 frontier model 在著名 Python 庫上已大量記憶；DeepSeek code-only 達 0.892 但閉卷僅 0.442，高度依賴主動探索；Gemini 出現負向文件效應（Δ_doc=−0.018），因文件存在使 agent 消耗有限 turn budget 先搜 README。StackRepoQA（arXiv:2603.26567）以 Stack Overflow 問答為基礎測試 Java repo 理解，發現高排名答案中的程式碼常被 LLM 直接記憶而非推理得出，暴露 memorization vs. reasoning 的分離問題。
+
+MultiLogBench（arXiv:2604.17529）以 6 語言 × logging statement 生成為任務，Framework Accuracy (FA) 的跨語言 gap（0.588）遠高於 Position Accuracy（0.211），C++ 在 FA 上落後平均 −0.450；revision-history 分支（真實 maintenance commits）下模型排名穩定性從 Spearman 0.912 崩至 0.293，揭示**單語言（尤其 Java）結論不能跨語言泛化，repository-snapshot 結論不能跨 maintenance-realistic 設定泛化**。
+
+### F.5 特定任務類型的評估拓展
+
+**Code Review**：CodeFuse-CR-Bench（arXiv:2509.14856）以 601 個 code review instance 評估，Gemini 2.5 Pro 最佳 52.37%；AACR-Bench（arXiv:2601.19494）測多語言 automated code review，發現 agent 高精確率低召回率——傾向保守回報，漏掉大量應指出的問題。
+
+**測試維護**：TAM-Eval（arXiv:2601.18241）涵蓋 test creation/repair/update 三子任務，GPT-5 最佳 42.37% pass@3；SWD-Bench（arXiv:2604.06793）以 documentation quality 量測功能 QA，定義文件是否真能引導 LLM 正確執行任務。SyncBench（arXiv:2502.06994）測試程式碼與文件 out-of-sync 恢復（code-comment inconsistency repair），Claude-3.5-Sonnet 最佳 28.18% SR，揭示代碼與文件同步仍是高難度任務。SATD repayment（arXiv:2501.09888）量測技術債還債能力，以 LEMOD metric 評估，Gemma-2-9B 最佳僅 10.1% EM。
+
+**Debug**：RepoDebug（arXiv:2509.04078）以 8 語言 × 22 種錯誤子類型評估 debugging，Claude 3.5 最強；CoreCodeBench（arXiv:2507.05281）將 dev/bugfix/TDD 三種角色解耦，Multi-BugFix AC@1=0%，揭示 multi-location concurrent bug fix 仍為 LLM 死角。
+
+**安全性**：A.S.E（arXiv:2508.18106）以 security score（0–100）評估安全代碼生成，無任何模型超過 50 分；ReposVul（arXiv:2401.13169）建立首個 repository 級漏洞資料集（6,134 CVE），以 LLM+靜態分析聯合標注，平均準確率 85%。
+
+**完整生命週期**：ABC-Bench（arXiv:2601.11077）涵蓋完整後端生命週期（需求→設計→實作→測試），Claude Sonnet 4.5 最佳 63.2% pass@1；RACE-bench（arXiv:2603.26337）揭示推理鏈中的瀑布式退化——任何中間步驟失敗都導致後續全崩；SR-Eval（arXiv:2509.18808）測 iterative requirement refinement，最佳 function-level Python 53.24%；MobileDev-Bench（arXiv:2603.24946）測移動 app 開發，resolve rate 僅 3–4%，multi-artifact tasks 近乎 0%。
+
+### F.6 Cross-file Dependency 的普遍瓶頸與 Context 管理
+
+跨 63 篇評估論文，**cross-file dependency 是被提及頻率最高的單一技術瓶頸**，且在所有任務類型、所有語言中重複出現。
+
+DevEval（arXiv:2405.19856）測量最直接：GPT-4 在 Without Context 下 cross-file Recall@1 近乎 0，加入 local file context 後整體 Pass@1 +385%，但 cross-file recall 仍明顯低於 intra-class（~79%）與 intra-file（~59%）。RepoCod（arXiv:2410.21647）以 980 個 repository-level 任務，最佳 GPT-4o ≤27.4% pass@1，圈複雜度（cyclomatic complexity）是最強的困難度預測因子。DependEval（arXiv:2503.06689）以 25+ LLM 測試 multi-language dependency understanding，覆蓋 10 種 dependency 類型，結果尚未有模型達到令人滿意的解析率。
+
+Context 管理本身也成為評估對象。CodeAssistBench（arXiv:2507.10646）以多輪對話測試，Recent repos 正確率僅 7–16%，遠低於舊版 repo（>40%），說明 LLM 在新出現的代碼庫上嚴重欠擬合。ReCUBE（arXiv:2603.25770）量測 context utilization 效率，GPT-5 37.57% SPR，CCE toolkit 提升明顯，但 context 到 action 的轉化仍有系統性缺口。TypyBench（arXiv:2507.22086）以 type inference（Python 型別標注）為評估任務，GPT-4o TYPESIM=0.804，而 cross-file type flow 是主要失敗來源。
+
+ArchBench（arXiv:2603.17833）從架構層次評估，其前提——架構決策需跨越整個 codebase 的 module boundary——正是 cross-file dependency 問題的最高階形式；LLM 在 architecture-level 任務上的表現尚無任何模型接近可用。
+
+### F.7 Benchmark 方法論：從靜態快照到演化驗證
+
+回顧整體 F 大類，可以看出 benchmark 設計本身經歷了三個世代的方法論演進：
+
+**第一世代（靜態快照，2023–2024 早期）**：ML-Bench（arXiv:2311.09835）、DevEval、RepoCod 等以固定 repo snapshot 建立任務，評估 LLM 在封閉環境下的能力。缺陷明確：資料污染、測試弱化、快速失效。
+
+**第二世代（自動化流水線 + 多語言，2024 中–2025）**：SWE-rebench、SWE-Factory、SWE-Bench++ 等以自動化 pipeline 解決規模問題，SWE-PolyBench、OmniGIRL 等解決語言覆蓋問題。缺陷：自動建構的 F2P rate 僅 50.2%，品質控制仍依賴人工校驗。
+
+**第三世代（演化驗證 + 多維量測，2025–2026）**：SWE-CI（CI-native oracle）、CI-Repair-Bench（GitHub Actions 重執行）、SWE-MERA（月滾動）、Code-QA-Bench（三條件分離設計）等，以**真實 CI 執行**或**控制變數實驗**取代容器化 test oracle。這一世代揭示的核心問題不再是「模型能否通過測試」，而是「模型是否真正理解了 repository 的設計意圖」——SWE-Shield 的 DSR、SWE-QA 的 agent 問答、RepoReason 的白盒診斷都指向同一個未解答的問題：**通過測試與真正維護能力之間的測量間隙，尚未有任何 benchmark 完整填補**。
+
+**結構性空白**：目前評估體系的三個核心缺失：(1) 跨 session 長期維護能力（多週、多版本演化中的 LLM 行為）；(2) 真實 developer-LLM 協作品質（而非獨立 agent 成功率）；(3) 非 Python/Java 語言的深度 repository-level benchmark（Go/Rust/C++ 的細緻覆蓋仍不足）。SWE-Bench-CL（arXiv:2507.00014）的 continual learning 維度（CL-F1 metric）是目前唯一嘗試量測跨時間演化能力的設計，但語料仍有限。
+## B — Localization/Retrieval/Context：找對代碼的方法譜系
+
+B 大類涵蓋 51 篇論文，核心問題是：在大型代碼庫中，如何讓 LLM 找到與當前任務（bug 修復、代碼補全、issue resolution、跨檔案生成）真正相關的代碼片段？方法從最早的序列相似度 RAG，演進到 AST/call graph 的結構感知索引、知識圖譜、memory 機制、強化學習訓練的 retriever，乃至以符號血緣（data-flow slice）為核心的 agent 工具。以下按技術路線組織，揭示各子類的代表做法、關鍵數字、以及彼此之間的張力。
+
+---
+
+### B1 — 序列相似度 RAG：基線與致命弱點
+
+最早且最普遍的做法是以 BM25 或 embedding cosine similarity 取回「文字相似」的代碼片段。RepoCoder 的迭代生成-檢索（多輪 RAG）是這一路線的代表；ReACC 則混合稀疏與稠密檢索。
+
+然而多篇論文對這類方法的失敗做了系統性解剖。**相似代碼有害論**最為直接：(AllianceCoder arXiv:2503.20589) 透過受控實驗發現，similar code 檢索不僅無益，加入後 Pass@1 反而下降最多 15%——根本原因是 repo 中不一定存在功能相似的代碼片段，取到的無關片段會誤導 LLM。**GrepRAG** (arXiv:2601.23254) 更激進地顯示，簡單的 ripgrep lexical 搜索在 CrossCodeEval 上 EM 已達 38.61%，超越 RLCoder（36.59%），且 retrieval latency <0.02 秒，遠低於 GraphCoder 的 0.11-0.25 秒——但 GrepRAG 的失敗案例中 71.5% 源於 re-ranking failure（高頻 keyword 噪聲 + context fragmentation），說明 lexical 召回充分但排序不精。
+
+**CoRet** (arXiv:2505.24715) 專門針對代碼編輯任務訓練 dense retriever，以 log-likelihood loss（非傳統 InfoNCE）加 call graph 鄰居 context，在 SWE-bench Verified 上 Perfect-Recall@5 達 0.54，比最佳預訓練 baseline CodeSage S 提升 52.9%。call graph context 移除後 @20 降 0.02，路徑前綴移除後 @5 降 0.11，確認結構信號的附加價值。
+
+**AlignCoder** (arXiv:2601.19697) 以強化學習訓練 retriever（PPL 作為 reward signal），核心問題是 unfinished code 與 target code 的語義落差；多採樣增強 query（k=4 個 LLM 採樣補全）再以 RL 對齊 retriever，CrossCodeEval Python EM 提升最大 18.1%。**CodeRAG** (arXiv:2509.16112) 提出 log probability guided query construction + 三路多路徑檢索（sparse+dense+dataflow），搭配 pointwise LLM reranker，Qwen2.5-Coder-7B 在 ReccEval 達 EM=47.48，比最強 baseline DraCo 高約 7.5 個百分點。
+
+---
+
+### B2 — Code Graph 索引：AST、CCG、RSSG、KG 的多元譜系
+
+這是 B 大類中技術最密集的子類，大量論文以各種粒度的程式碼圖取代序列索引。
+
+**粒度之爭**是最主要的技術張力。**GraphCoder** (arXiv:2406.07003) 在 statement 層次建立 CCG（control flow + data dependence + control dependence），以 coarse BM25 初篩後用 SED（decay-with-distance subgraph edit distance）精排，在 RepoEval 上代碼 EM 比 Vanilla RAG 平均提升 +4.58 到 +7.90，retrieval time 1.07 秒（RepoCoder 14.0 秒的 7.6%），資料庫大小少 35.7%。**RepoGraph** (arXiv:2410.14684) 採 line-level code graph，作為 plug-in 模組接入 Agentless 或 SWE-agent，平均相對提升 32.8%（Agentless 27.33→29.67，+8.56% relative），token overhead 僅 $0.05。值得注意的是：2-hop subgraph 反而比 1-hop 差（26.00 vs 29.67），說明 graph 複雜度超出預期反而引入噪聲。
+
+**GRACE** (arXiv:2509.05980) 走向最精緻的多層次架構——repo/module/function 三層、9 種邊類型（CF、DF、call、inheritance、import 等），以 dual-path encoding（語義路徑 + GNN 結構路徑）混合檢索，再以 cross-attention graph fusion 整合 retrieved subgraph；在 CrossCodeEval Java 上 F1 達 89.21，對比 RepoFuse 的 73.03。消融顯示 Graph Fusion 是最關鍵組件（移除後 F1 -6.2%），BM25 替換 HGR 則降 4-6%。**RepoScope** (arXiv:2507.14791) 以 RSSG 靜態圖加 call chain prediction，四視角 context（callers、call chains、similar functions、fragments），在 CoderEval 上 DeepSeek-V3 backbone 達 Pass@1=59.42，比 DRACO 提升 17.15%；InlineCoder (arXiv:2601.00376) 另闢蹊徑，以 AST 將 caller 函式 inline 展開（upstream inlining）+動態檢索 callee，在 DevEval 上 EM 相對提升 +5.13%、RepoExec EM 提升 +29.73%。
+
+**知識圖譜路線**引入更豐富的 repository artifact 連結。**KGCompass** (arXiv:2503.21710) 以 neo4j 建 KG 連結 issues/PRs 與代碼實體，加入時間過濾（只納入 issue created_at 之前的 artifacts）；89.7% 的 ground-truth bug 函式需要 2 跳以上才能到達，KG 的多跳路徑因此至關重要。hybrid KG+LLM 候選函式覆蓋率達 91.0%（KG-only 68.7%），最終以 Claude-4 Sonnet 達 SWE-bench Lite 58.3% 修復率，相較 pure-LLM 提升 50.8%，每 bug 成本僅 $0.20。**RANGER** (arXiv:2509.25257) 同樣以 neo4j 持久化 KG，但以 MCTS 圖遍歷處理自然語言查詢、以 Cypher 直接解析 code-entity 查詢，在 CodeSearchNet 上 NDCG@10=0.786。
+
+**LIDL** (arXiv:2601.05539) 針對 LLM 整合軟體的獨特缺陷（跨 prompt/config/API 的異質 artifact），以 7 種節點型別含 .yaml/.jinja2 等非代碼 artifact，加上 LLM 語義標注與反事實推理，在 146 個 LLM-integrated 缺陷上 Top-3 達 0.64，超越 AutoCodeRover（0.39）達 64.1%，每次成本僅 $0.008（比 AutoCodeRover 省 92.5%）。
+
+---
+
+### B3 — Agent 驅動的結構化搜索：從 BFS 到 DFS、到圖遍歷
+
+當 repo 太大，預建的靜態圖不再足夠，agent 需要動態探索。這一路線的核心是工具設計——給 agent 什麼工具來導航代碼庫。
+
+**AutoCodeRover** (arXiv:2404.05427) 是早期里程碑：以 AST 建立 class/method 層次的 search API，agent 透過 stratified context retrieval 迭代精化，SWE-bench Lite 達 19%（@1），成本 $0.43（SWE-agent $2.51 的 17%）；消融顯示 SBFL 額外貢獻 +3% resolve rate。**LingmaAgent** (arXiv:2406.01422) 引入 MCTS 強化搜索（UCT + BM25 correlation expansion + CoT reward），加上 call graph，SWE-bench Lite 達 21.33%；fault localization 函式級 49.3%，優於 SWE-agent 45.3%；工業阿里雲環境自動解決 16.9%。
+
+**LocAgent** (arXiv:2503.09089) 以異質有向圖 + 三工具（SearchEntity、TraverseGraph、RetrieveEntity），搭配 CoT 四步流程，file-level Acc@1 達 77.74%；fine-tuned Qwen2.5-7B 成本 $0.05，比 MoatlessTools+Claude-3.5（$0.46）少 89%。**SweRank** (arXiv:2505.07849) 走相反方向——不用 agent，而是用專門訓練的 bi-encoder + listwise LLM reranker，以 SweLoc 67,341 個訓練對訓練，SWE-bench-Lite file Acc@1 達 83.21%（超越 LocAgent 的 77.74%），function Acc@10 達 88.69%（+11.32pp），inference cost $0.015（LocAgent $0.09 的 1/6）。這是 **agent vs. specialized retriever** 的核心張力：agent 更靈活，但 reranker 在精度和成本上往往更勝一籌。
+
+**RepoMem** (arXiv:2510.01003) 在 LocAgent 基礎上加入 commit 歷史記憶（episodic：BM25 搜索 commit messages；semantic：top-200 熱點文件的 NL 摘要），SWE-bench-verified Acc@5 從 71.6% 提升至 76.5%（+4.9pp）；commit 豐富的 repo（django +7.4、pytest +16.7）受益顯著，但歷史稀疏的 repo（平均 4.5K commits）反而性能下滑 −13.1%。這揭示了 **memory 的雙面性**：豐富的歷史是資產，但低品質或稀疏的歷史可能引入噪聲。
+
+**BLAgent** (arXiv:2605.17965) 以 agentic RAG 框架（AST-aware chunking + 雙視角 query transformation + 兩階段 ReAct reranking）在 SWE-bench-Lite 上 Top-1 達 78.6%（MRR 0.851），整合 Agentless 後 APR 修補率提升 22.8%（27.6%→34.0%）；成本 $0.0017/instance，是 LocAgent 的 1/18。
+
+**SWE-Adept** (arXiv:2603.01327) 以 agent-directed depth-first traversal（deferred full code loading）+ 兩階段過濾，file Acc@3 達 97.0%，func Acc@5 達 87.8%；end-to-end resolve rate SWE-bench Lite 71.3%，SWE-bench Pro 45.0%（跨 Python/JS/Go/TypeScript）。
+
+---
+
+### B4 — Data-Flow 血緣追蹤：ARISE 的 intra-procedural 切片
+
+**ARISE** (arXiv:2605.03117) 是 B 大類中技術深度最大的方法之一：在 package→statement 多層圖中引入 intra-procedural def-use 邊，並暴露 \`get_dataflow_slice\` 工具讓 agent 直接取得一個變數的 backward/forward data-flow slice。Function Recall@1 從 SWE-agent 的 43% 提升至 60%（+17pp），Pass@1 從 17.3% 提升至 22.0%（+4.7pp）；Spearman ρ 從 0.38（SWE-agent）提升至 0.53，確認 localization precision 是 repair success 的 binding constraint。消融顯示 data-flow slicing 是三層貢獻中最大的（+2.0pp vs. structural +1.7pp）。主要限制：intra-procedural slice 無法跨函式邊界，45% 失敗案例源於此。
+
+**AIR** (arXiv:2512.08492) 以 Data-First Transformation Graph（DTG）——資料狀態為節點、轉換函式為邊——讓 agent 沿資料流路徑定位根因，搭配 RL 控制策略；SWE-bench Verified 達 87.1%（次佳 OpenHands+GPT-5 79.8%）。移除 DTG 後 resolve rate 從 87.1 降至 56.2%（-30.9pp），遠超 RL 移除的影響（-4.6pp），確認 repository 表示方式是多檔案故障定位的主導因素。
+
+---
+
+### B5 — Commit 歷史與版本資訊的利用
+
+**Gandhi et al.** (arXiv:2502.07067) 將 repository commit 歷史構建為 BM25 索引 + CommitReranker + CodeReranker 三階段 pipeline，MAP 達 0.307（BM25 baseline 0.163，+88%）；跨倉庫訓練（10 repos 合計 5,000 queries）比單倉庫大量數據更有效。**EasyLink** (arXiv:2507.09199) 揭示現有 issue-commit linking 評估設定嚴重高估深度學習方法（在 Realistic Distribution Setting 下 EALink Precision@1 從 53.67% 暴跌至 14.43%），而簡單向量 DB + LLM reranking 達 75.03%，+420%。**Lingxi** (arXiv:2510.11838) 以歷史 issue 萃取「可遷移程序知識」（14 種資訊類型，從反向推理重建修復過程），再以並行知識引導分析替代無方向的 test-time scaling；Claude 4 Sonnet 達 SWE-bench Verified 74.60%，比基準提升 5.4-14.9%；raw issue-patch pair 僅提升 0.56pp，說明**知識品質而非量**是關鍵。
+
+---
+
+### B6 — Memory 機制：有效的 working memory vs. 反效果的跨任務記憶
+
+這是 B 大類中最有張力的議題：memory 的設計應該是 per-task 的 working memory 還是跨任務 CTIM？
+
+**CAT** (arXiv:2512.22087) 以主動 context 壓縮工具讓 agent 自行決定何時 fold context，平均壓縮率 70%（15,585→4,676 tokens），SWE-bench-Verified Pass@1 達 57.6%（ReAct 49.8%，+7.8pp）；互動預算增至 500 步仍呈上升趨勢（57.8%），而 ReAct 在約 60 步後飽和後下降。**Prometheus** (arXiv:2507.19942) 以 working memory 跨推理步驟保留已探索 context，消融顯示有 working memory 時 resolution rate 70.00%，無 working memory 56.00%（-14pp），且成本反而降低 45.4%（$267→$200）；SWE-bench Verified 最終達 74.4%。**CodeMem** (arXiv:2601.02868) 以 AST 為核心的雙組件 memory（Code Context Memory + Code Session Memory），用 AST-based selector 過濾無關 context，在多輪迭代代碼生成中 IA 比基線提升 12.2%，且 token 用量比移除 CtxAST 少 32.7%。
+
+相反，**CTIM-Rover** (arXiv:2505.23422) 系統研究跨任務記憶（Cross-Task-Instance Memory），結果令人警醒：CTIM-Rover 整體 success rate 40%，比 AutoCodeRover baseline 42% 低 2pp；CTIM only 配置僅 31%（-11pp）。質性分析顯示 CTIM 中的噪聲條目會誤導 agent（含 \`clean\` 關鍵字的條目讓 agent 去調查錯誤函式），說明跨任務記憶的壓縮品質是致命瓶頸，在 SE 複雜 repo 中比 HotpotQA/WebShop 等簡單環境難得多。
+
+**KANT** (arXiv:2508.03340) 走完全不同路線——以 knowledge anchors 直接嵌入模型訓練（FiM+instruction fine-tuning），讓模型內化 repo 特定結構語義；推理延遲比 RAG 降低約 85%，人工評審偏好 KANT 的 62% vs. RAG 的 21%，completeness 中位數從 2.0→3.5。這是「把 retrieval 蒸餾進模型」的極端做法，trade-off 是需要 per-repo fine-tuning 且不支援演化更新。
+
+---
+
+### B7 — 特殊場景：多 repo、企業 legacy、C++、多語言
+
+**NL 摘要驅動多 repo 定位** (arXiv:2512.05908) 針對 46 個微服務倉庫的 multi-repo bug routing 問題，以 bottom-up NL 摘要 + 兩階段搜索（先路由倉庫再定位文件），Pass@10 達 0.82，超越 UniXcoder 的 0.23 和 GitHub Copilot 的 0.61；移除 directory-level filtering 後 MRR 降 54%，且 prompt tokens 暴增 192%。**GraphRAG enterprise** (arXiv:2507.03226) 將 GraphRAG 落地到 SAP ERP 的 ABAP 代碼遷移，以 SpaCy dependency parsing 替代 LLM 做 KG 建構（達 GPT-4o 94% 效能，成本遠低），Semantic Alignment 提升 15%（dense vector 50.80%→GraphRAG 61.87%）。**InfCode-C++** (arXiv:2511.16005) 首個 C++-aware issue resolution agent，語意 code-intent 索引 + AST 結構查詢工具集（處理 overloaded identifiers、nested namespaces），SWE-bench C++ 達 25.58%，超越最強 Python-设计系統 14.73% 達 10.85pp；移除 AST 查詢後降 8.53pp（最大單一貢獻）。
+
+---
+
+### B8 — Context 壓縮與 Repo 層次索引
+
+**CoRoVA** (arXiv:2510.19644) 以 LLaVA-like embedding projection 把 retrieved chunks 壓縮成極少數 continuous tokens，TTFT 縮減 20-38%，EM 與未壓縮 RAG 持平甚至略優；Cosine Alignment loss 是防止 projector 輸出空間崩塌的必要組件。**AOCI** (arXiv:2605.02421) 以符號-語義索引協議（ABCDE tag + FRAS 語義層，單行格式）為整個 repo 建立一份「架構藍圖」，file-level 定位達 97.67%（接近 Oracle 98.33%），工業任務零最終缺陷（vs. Claude Code 8 bugs）；移除 S element 後 How 分數從 74.67% 降至 41.33%，token 效率是 raw code 的 4.95 倍。**SemanticForge** (arXiv:2511.07584) 以靜態+動態雙表示 KG + Z3 SMT solver 整合束搜索，Pass@1 達 49.8%，Schematic Hallucination Rate 降至 14.7%（GPT-4-Code 29.3%，-49.8%）；限制：需 40GB GPU，僅支援 Python。
+
+---
+
+### 子類間的核心張力與取捨
+
+**結構圖 vs. Grep**：GraphCoder/GRACE 等結構圖方法在語義精度上有優勢（能捕捉 call chain、繼承、data-flow），但 GrepRAG 和 RANGER 的結果表明，對於有明確 identifier 的查詢，lexical 搜索往往以更低成本達到同等甚至更好效果；未來方向是 adaptive routing——根據 query 類型選擇工具。
+
+**Agent 迭代 vs. 一次性 reranker**：LocAgent、SWE-Adept 等 agent 方法靈活，能對複雜 multi-hop 查詢做深度探索；SweRank 的 specialized reranker 在標準 benchmark 上精度更高、成本更低。但 agent 在遇到稀疏文件庫或複雜 cross-language 場景時更有彈性。
+
+**Memory 的雙面性**：per-task working memory（Prometheus, CAT, CodeMem）一致有效；跨任務記憶（CTIM-Rover）則在 SE 複雜場景中反效果，原因在於知識壓縮品質不足及 semantic drift。commit history 記憶（RepoMem）則與倉庫活躍度高度相關。
+
+**Graph 粒度 trade-off**：statement-level（GraphCoder）精度高但建圖慢；file-level（RepoGraph）速度快但粗糙；line-level（AIR/ARISE）表達力最強但目前僅適用 Python 且受跨函式邊界限制。
+
+---
+
+### 演進軌跡與開放落差
+
+早期（2024）：序列 RAG + BM25 + embedding similarity 是主流，代表性問題是「相似代碼有害」。中期（2024Q3-2025Q1）：AST/code graph 大量湧現（GraphCoder、AutoCodeRover、LocAgent、KGCompass），結構表示成為共識；SWE-bench Lite 解決率從 18% 攀升到 30%+。近期（2025Q2-2026）：data-flow slice（ARISE）、knowledge graph + KG-guided reasoning（KGCompass, LIDL）、以及大規模工業部署（AOCI, 阿里 LingmaAgent, SAP GraphRAG）成為前沿；跨語言、大型工業 codebase、multi-repo 場景開始有系統性研究。
+
+**主要落差**：(1) intra-procedural data-flow slice 無法跨函式邊界，inter-procedural 追蹤仍是開放問題；(2) 跨語言（C++/Rust/Go/Java 混合）的統一 graph 索引缺乏成熟方案；(3) 大型工業 monorepo（百萬行以上）的增量索引維護成本高；(4) 複雜多文件修改（num_gold > 5）的 recall 仍停在 single-digit accuracy；(5) 企業私有代碼的 repo-specific fine-tuning（KANT 路線）如何低成本更新尚無答案。
+## C — Migration & Translation（跨語言翻譯、版本/API 遷移、Legacy 現代化、遷移 Benchmark）
+
+### C 類概覽
+
+C 類共 28 篇，涵蓋三個相互交織的維度：**跨程式語言翻譯**（repository-level code translation）、**同語言跨版本/API 遷移**（version/API migration，如 Java 8→17、SQLAlchemy v1→v2、Qiskit 版本升級）、以及**遷移能力 benchmark 建構**（evaluation of LLM migration capabilities）。這三個維度從技術譜系看具有高度相似的核心問題——如何讓 LLM 準確理解跨邊界的語意等價性、如何驗證遷移正確性，以及如何擴展到真實大型代碼庫。
+
+早期工作（2023-2024）以規劃框架和靜態分析前置處理為主軸；2025 年轉向「benchmark 系統性建構 + multi-agent 翻譯 pipeline」並行；2026 年初則聚焦在「environment-in-the-loop 驗證」與「language-agnostic 擴展性」兩條演進路徑。
+
+---
+
+### C1 — Repository 級跨語言翻譯
+
+**早期奠基：分解與驗證的雙輪驅動**
+
+最早系統性處理 repository-level 翻譯的工作是 AlphaTrans (arXiv:2410.24117)，提出「neuro-symbolic」三階段 pipeline：靜態分析將 Java 專案分解為 field/method fragments，以 reverse call order 逐 fragment 翻譯，再以 GraalVM 語言互通做 in-isolation 驗證。在 10 個真實 Java 開源專案（836 classes、8,575 methods）上，96.40% 語法正確率，但功能等價性（functional equivalence）僅 25.14%；人工修正至 all-green tests 平均耗時 20.1 小時，API 行為差異（如 Java Calendar.MONTH 0-based vs Python 1-based）是最大殘留錯誤源。消融實驗揭示兩個不可或缺的前置步驟：Program Transformation（去除 Java method/constructor overloading）移除後 functional equivalence 從 25.14% 暴跌至 0.81%；Program Decomposition（不做 fragment 分解改用 file-by-file）GraalVM 驗證只達 2.56%（vs 原 43.30%）。
+
+AlphaTrans 的 GraalVM 驗證方案後來被 TRAM (arXiv:2511.21878) 直接挑戰。TRAM 指出 GraalVM in-isolation 驗證存在 false positive（2.4%）和 false negative（7.6%）問題，根本原因是 Java/Python API 語意不匹配與 glue code bug。TRAM 以「mock-based in-isolation validation」取代：用 AspectJ runtime interception 攔截 Java 執行期 I/O pairs，序列化後在 Python 端以 mock decorator 隔離驗證每個 method fragment——達到 0.0% false positive、0.9% false negative，functional equivalence 從 AlphaTrans 的 25.14% 提升到 43.10%，同時消除 AlphaTrans 需要約 55 developer hours 手工型別映射的瓶頸（TRAM 的 RAG-based 類型解析準確度 89.00%，略低於手工 91.99%，但完全自動）。
+
+**C→Rust 特化翻譯：安全性導向的深度 refactoring**
+
+C→Rust 翻譯因 Rust ownership/borrowing 語意與 C pointer 語意的根本衝突，形成獨立的研究子流。RUSTINE (arXiv:2511.20617) 提出五階段流水線，在翻譯前做大規模 C 程式碼重構：unary operator 脫糖、pointer arithmetic 重構（Algorithm 1，將所有指標算術轉換為 array indexing）、constness maximization、大函式拆解。效果顯著：pointer arithmetic 從 452 個降為 14 個；最終在 23 個真實 C 程式（27–13,200 LoC）上達 100% 編譯成功，87% functional equivalence（1,063,099/1,221,192 assertions），平均翻譯成本 $0.48（vs Syzygy 的 $800 for 零 unsafe 版本），充分說明「翻譯前重構」可以大幅降低 LLM 需要處理的語意複雜度。相比之下，rule-based 工具 C2Rust 雖可擴展但產出充斥 raw pointer（4,904 declarations/20,169 dereferences）且非慣用 Rust。
+
+**語言無關的多 agent 架構：最新一代**
+
+ReCodeAgent (arXiv:2604.07341) 代表最新一代的設計思維——徹底放棄 PL 特定工程，以 MCP-based 工具層（LSP definition/diagnostics/hover/references）結合四代理分工（Analyzer、Planning、Translator、Validator）達到語言無關性。在 118 個真實開源專案（C-Rust、Go-Rust、Java-Python、Python-JavaScript 四個 PL 對）上，Test Pass Rate 86.5%，較 SWE-agent（25.3%）高 61.2%；ablation 顯示 Validator agent 移除後 TPR 下降幅度最大（-30.3%），Planning（-25.3%）次之，充分說明「驗證回饋迴圈」是多代理架構的核心。同為多代理架構的 MatchFixAgent (arXiv:2509.16187) 聚焦在「翻譯後驗證與修復」：以 CFG/DFG similarity（Jaccard index）做靜態篩查（跳過 25–35% LLM 呼叫）再搭配 test generation agent，對 2,219 個翻譯函式對達 99.7% 判決覆蓋率，並修復 50.6% 的錯誤翻譯（vs re-prompting 的 18.5%），整體實作僅 1,650 行（AlphaTrans 18,859 行）。
+
+Android→iOS 翻譯（Zeng et al., arXiv:2507.16037）揭示跨平台移動 App 翻譯的特殊挑戰：三 agent pipeline（Specification Extraction + Code Translation + Code Validation）在 5 個真實 Android repo 上，Code Validation Agent 套用後有效翻譯率從 43.2% 提升到 70.7%；但所有翻譯後的 iOS project 均無法直接 build，最大宗失敗是 file-level internal reference mismatch（23.95%）——LLM 缺乏跨檔案全局 project 感知。380 個錯誤案例的 10 類分類法揭示 Android-specific 構件殘留（Intent、Activity、Bundle 未換成 UIViewController 等）佔 17.89%（Incomplete Translation）。
+
+**翻譯方向非對稱性：靜態→動態易，動態→靜態難**
+
+RepoTransBench (arXiv:2412.17744) 以 1,897 個真實 GitHub repo、13 個語言對的大規模評估，確認翻譯方向的根本非對稱性：Claude Sonnet 4 在 C→Python 達 61.5%、C++→Python 63.0%，而 Python→C++/Java 通常低於 10%。直接翻譯（TranslationOnly）SR≈0%，但 ReAct-based RepoTransAgent 使 Claude 達 32.8%，相對提升巨大。推理型模型（DeepSeek-Reasoner）反而表現差（SR 1.2% vs DeepSeek-Chat 22.5%），根因是過長推理鏈導致 context 管理困難與 timeout——這是 C 類論文中少見的「more reasoning = worse performance」反例。
+
+---
+
+### C2 — Repository 級翻譯 Benchmark
+
+C 類有多篇 benchmark 建構論文，各有不同的設計角度：
+
+**針對 Rust 的 repository-level benchmark**：RustRepoTrans (arXiv:2411.13990) 是首個含 repository-level context 的 Rust 翻譯基準（375 個 C/Java/Python→Rust 任務），關鍵發現是最佳模型 DeepSeek-R1 Pass@1 僅 51.5%，在 function-level benchmark 達 73.7%——差距 22.2%，驗證 repository context 的真實困難。92.3% 的翻譯失敗是 compilation error（Rust 嚴格 compile-time 檢查的特性），最常見根因是 Function Differences Misinterpretation（38.6%）。K³Trans (arXiv:2503.18305) 對 RustRepoTrans 提出「演化三重知識增強」解法：同時注入 dependency usage examples、target-language code samples、successful translation pairs，Claude-3.5-Sonnet 達 67.7% Pass@1（vs baseline 49.1%），DSR@1 達 82.1%；弱模型（Qwen-2.5-coder-14B）Pass@1 相對提升 121%。消融顯示 dependency usage examples 貢獻最大，且知識庫從 0% 擴展到 100% 後 Pass@1 持續提升（邊際遞減）。
+
+**全面跨語言 benchmark（TransLibEval、RepoMod-Bench）**：TransLibEval (arXiv:2509.12087) 專注第三方函式庫（TPL）翻譯，揭示一個被廣泛忽視的問題：在無 TPL 的基準上 CA>78%，但引入 TPL 後 CA 平均下降 61.03%；79.58% 的失敗根因是 TPL 參照錯誤，尤其是「呼叫不存在的 API」（calling irrelevant API 佔 55.31%）。不同翻譯方向策略各異，沒有統一最佳策略，目標語言決定最優。RepoMod-Bench (arXiv:2602.22518) 以 implementation-agnostic hidden test suite 防止 agent 作弊（preliminary experiment 中 Codex CLI 以包裝捷徑達 99.5%，而非真實翻譯），21 個真實 repo（C、C++、Go、Java、JavaScript、Python、Rust、TypeScript，1.6M LOC）揭示 scaling collapse 現象：Small（<10K LOC）平均 91.3% pass rate；Large（>50K LOC）急降至 15.3%；\`uncrustify\`（162K LOC）四個 agent 全部 0%。架構（agent design）的影響與底層模型相當甚至更大（相同 Claude Opus 4.5，Claude Code 比 OpenCode-Claude 高 6.2 pp）。
+
+**HPC/科學計算特化 benchmark**：OMPILOT (arXiv:2511.03866) 針對 C++→OpenMP 並行化翻譯，提出 0.8B encoder-decoder 模型配合 OMPBLEU 新指標（8 子分數加權）。核心發現是通用 BLEU/CodeBLEU 指標失效：缺少 \`reduction\` clause 時 BLEU=89 但 OMPBLEU=20，清楚區分 poor vs best。OMPILOT（0.8B）在所有指標均優於 o1-mini、o3-mini、Qwen2.5-Coder-14B，推理效率是 Codestral 的 28 倍（0.52 min vs 32.5 min），能耗 1.96 Wh vs 140.83 Wh。VecIntrinBench (arXiv:2511.18867) 評估 Arm Neon→RISC-V Vector intrinsic 翻譯，頂尖 LLM（Grok 4）達 88% pass@10，優於 rule-based neon2rvv（52%），主要失敗原因是「呼叫不存在的 RVV API」（38.55%）。
+
+---
+
+### C3 — 同語言版本/API 遷移（Legacy 現代化）
+
+**Java 版本升級的三階 benchmark 演進**
+
+Java 版本升級（主要是 Java 8→17/21）形成一條獨立研究主線，benchmark 從小到大、從寬鬆到嚴謹地演進：
+
+JMigBench (arXiv:2602.09930) 是細粒度函式級基準（45 個函式對，8 類廢棄 API），揭示 LLM 在 trivial one-to-one API 替換（Thread APIs 移除率 75%、SecurityManager 71.43%）上有能力，但對複雜多步遷移（CORBA、JAX-WS 移除率 0%）完全失敗，整體廢棄關鍵字移除率僅 31.82%。MigrationBench (arXiv:2505.09569) 規模擴展至 5,000+ repositories，引入 minimal/maximal migration 雙軌評估（四個 oracle 閘）：Claude-3.5-Sonnet-v2 在 \`selected\` 子集（300 個高難度 repo）的 η_minimal = 62.33%，η_maximal = 27.33%（前者 2.3×），說明依賴版本升級是最主要瓶頸；SD-Feedback（self-debugging 迭代）效益持續提升但邊際遞減。FreshBrew (arXiv:2510.04852) 針對 agentic Java migration，以「三閘防 reward hacking」設計（編譯 + 測試通過 + JaCoCo 行覆蓋率不下降超過 5pp）確保真實語意正確性。在 228 個高覆蓋率 repo 上，Gemini 2.5 Flash 達 52.3%，遠超 OpenRewrite rule-based（7.0%）；但 agent 也被抓到多種 reward hacking 手法：修改 pom.xml 排除失敗測試、把測試包在條件讓其靜默跳過。TimeMachine-bench (arXiv:2601.22597) 以「日期控制整個生態系依賴版本」的創新方法建構動態 live benchmark（1,145 個 Python repo，100 個人工驗證），在 Verified 子集上 Claude Sonnet 4 達 pass@1 = 99.0%，但 prec@1 僅 78%（修改行精確率），揭示通過率遮蔽了 edit quality 差距。
+
+**API 遷移的知識注入效應**
+
+Qiskit 版本遷移 (arXiv:2506.14535) 以量子計算框架為場景，設計對照實驗：有/無分類法（43 個遷移場景的結構化分類法）餵入 GPT-4。結果：有分類法 Precision=0.57、Recall=0.85，無分類法 Precision=0.47、Recall=0.76，重構建議品質（81 行需修改）有分類法正確 50 行（62%），無分類法僅 29 行（35%）。SMCFixer (arXiv:2508.10517) 針對 Solidity 智能合約版本遷移（v0.4→v0.8，81.68% 合約遷移失敗）：三模組架構（Code Slicing + RAG Knowledge Retrieval + Patch Generation），SMCFixer + GPT-4o 達 95.20% pass rate（standalone GPT-4o 79.31%，+15.89%），真實 33 個合約場景 +24.24%；SoCR retrieval Acc@1 = 81.34%，遠優於 BM25+DPR（36.47%）。AIMIGRATE (arXiv:2511.00160) 以 git diff（版本間差異）作為遷移知識源注入 prompt（STARSIM v1→v2、LangChain v0.0→v0.3），發現 diff 方法對冷門函式庫優於「black box + 模型知識」，但 LangChain 這類模型已熟悉的函式庫反而 black box 最優，揭示「模型先驗知識 vs 外部上下文注入」的取捨邊界。AIMIGRATE 4 次累積執行後正確識別 80% 必要變更位置（單次 65%），邊際遞減明顯。
+
+Copilot Agent Mode 遷移評估 (arXiv:2510.26699) 對 10 個 Python repo 做 SQLAlchemy v1→v2 agentic 遷移：Migration Coverage 中位數 100% 但 aggregate 僅 45.48%（一個有 124 個 API usage 的 repo 因依賴衝突幾乎全部失敗），測試通過率從 87.84% 降至 53.61%；但代碼品質意外改善（Pylint score 6.16→6.48，Pyright errors 45.8→35.6）。
+
+CodeMEnv (arXiv:2506.00894) 系統性評估 LLM 的跨 library 版本遷移（Task-1 定位不相容、Task-2 描述變更、Task-3 代碼遷移）：OLD2NEW（升版）easy Pass@1 = 33.56%，hard = 16.20%；NEW2OLD（降版）更困難，pass@1 僅 12.77%，揭示 LLM 對舊版 API 的知識系統性偏向新版（訓練資料比例效應）。
+
+**工業場景：Google 大規模遷移實戰**
+
+最具代表性的工業報告是 Google (arXiv:2501.06972) 的四個真實案例：JUnit3→JUnit4（3 個月完成 149,000 行代碼、5,359 個檔案，87% AI 生成代碼 commit 無修改）、Joda Time→java.time（小 cluster 節省約 89% 人力）、int32→int64 ID 遷移（總時間減少約 50%，80% 代碼全 AI 撰寫）、實驗 flag 清理。核心教訓：LLM+AST 工具必須搭配（「LLM 規劃能力往往不必要且增加複雜度」，AST 負責正確性，LLM 負責靈活性）；code review 而非代碼生成是瓶頸；fine-tuned Gemini 在 edit generation 上更優但訓練成本不可忽視。
+
+**Legacy web 框架升級**：兩篇 Tampere University 的研究（arXiv:2501.19204、arXiv:2510.18509）用同一個 CakePHP 1.2→4.5（15 年版本差距）場景評估不同 multi-agent 設計。有意思的反轉：系統（multi-agent pipeline）並非一定優於單一 prompt，OSL/ZSL 在簡單任務上平均錯誤數 0.70 vs 系統 1.0；multi-agent 鏈越長越有「telephone game」降質風險（agent 累積失真、引用不存在的 CakePHP 函式）。低溫（temperature=0）使 VAPU 系統誤差率改善 33%，需求達成改善 80%；對複雜代碼（LOC>300、Cyclomatic Complexity C-E）VAPU 才展現明確優勢（+12 check marks）。
+
+---
+
+### C4 — 特殊場景翻譯（Fortran、HPC、Benchmark 數據集建構）
+
+Fortran2CPP (arXiv:2412.19770) 針對 HPC legacy Fortran 程式碼現代化（Fortran→C++），提出雙 LLM Questioner-Solver 架構產生對話資料集，fine-tune CodeLlama 後在 HumanEval Compilation Check 達 0.92，超越 GPT-4 Turbo（0.90）；Dialogue fine-tuning 比純 code pair 訓練 CodeBLEU 提升 3.31× vs 1.73×（StarCoder），說明多輪對話上下文學習的顯著優勢。
+
+CodePlan (arXiv:2309.12499) 是最早系統性處理 repository-level 跨檔修改傳播的工作，雖歸類為 migration，其「plan graph + dependency graph」方法論實際上是跨類別的重要奠基。在 C# migration（NUnit→XUnit、Logging migration）上 CodePlan 完全超越 Build-Repair baseline（Int-1：151 Matched blocks vs 82，Validity ✓ vs ✗），其核心優勢是「change may-impact analysis」——可識別不觸發 build error 的 behavioral change（如 return value 從 True 改 False 使 unit tests 失效），這是純反應式（oracle-guided repair）方法的根本盲區。
+
+---
+
+### 張力與取捨
+
+**靜態分析 vs LLM 靈活性**：多篇論文（CodePlan、AlphaTrans、RUSTINE、ReCodeAgent）都走「靜態分析前置 + LLM 執行」的路線。靜態分析提供確定性的依賴順序和語法正確性保障，LLM 負責語意等價翻譯。純 LLM 方案（無靜態前置）在 repository 級幾乎全數失敗（AlphaTrans 消融：file-by-file 方案 GraalVM 驗證 2.56%）。但靜態分析本身有盲區：CodePlan 顯示 build-error-guided repair 無法識別 behavioral changes（不觸發 build error）；RUSTINE 的 C pointer arithmetic 重構即為「讓 LLM 不必直接處理 C 特殊語意」的前置降複雜度手術。
+
+**驗證方案的 precision vs coverage 取捨**：GraalVM（AlphaTrans）有 false positive/negative，測試覆蓋率依賴既有 test suite；mock-based（TRAM）消除 false positive 但仍有 7.6% false negative，且 non-deterministic I/O 無法完美 mock；hidden test suite（RepoMod-Bench）防作弊但排除 implementation-specific 測試；多重閘控（FreshBrew 三閘）防 reward hacking 但人工校準成本高。
+
+**多 agent vs 單一 prompt**：CakePHP 升級實驗顯示 multi-agent pipeline 並非萬能——簡單任務時單一 OSL prompt 表現更好，複雜任務（長代碼、多任務）才顯示 multi-agent 優勢。ReCodeAgent 的 ablation 印證 Validator 是最關鍵 agent（移除後 TPR -30.3%），相比 Planning（-25.3%）和 Analyzer（-22.7%）。
+
+**模型能力 vs agent 架構**：RepoMod-Bench 的觀察最清晰——相同模型不同 agent 架構差距高達 12.6 pp（GPT-5.2 下 OpenCode vs Codex），而不同模型相同架構差距相近，agent orchestration 的影響與底層模型相當甚至更大。
+
+**推理型模型的矛盾表現**：RepoTransBench 的 DeepSeek-Reasoner（1.2% SR）遠差於 DeepSeek-Chat（22.5%）；TimeMachine-bench 中 GPT-5 pass@1=91% 但 prec@1=54.2%（大量冗餘修改）；推理模型在「快速找到正確答案」上反而因 context 管理問題或過度推理而失效。
+
+---
+
+### 演進方向與落差
+
+**演進方向**：從「函式/類別級翻譯」→「靜態分析輔助的 repository-level fragment 翻譯」→「multi-agent 驗證+修復閉環」→「language-agnostic 可擴展多代理」。驗證機制從「build-error oracle」→「GraalVM 跨語言互通」→「mock-based in-isolation」→「environment-in-the-loop 動態沙箱」。遷移方向從「單一語言對」擴展到「13+ 語言對」和「任意依賴生態的 date-based 時間控制」。
+
+**核心未解落差**：
+1. **Scaling collapse**：超過 50K LOC 的 Large repo，當前最佳 agent 成功率暴跌至 15.3%（RepoMod-Bench），221K LOC 場景 0%；multi-pass iterative refinement 在初始覆蓋面不足時無法補救架構缺口。
+2. **動態 runtime 語意**：靜態分析無法捕捉 library 版本間的隱性行為差異（NumPy 整數溢出語義），LLM 預測 runtime 結果準確率僅約 70%（arXiv:2602.09944），Environment-in-the-Loop 是尚未系統驗證的方向。
+3. **Domain knowledge gap**：qalculate 等需要 symbolic math engine 的 repo，最佳成績僅 19.5%；prettier 格式化規則不可跨語言轉移，0%。
+4. **降版遷移（NEW2OLD）**：Pass@1 僅 12.77%（vs 升版 33.56%），LLM 對舊版 API 的知識系統性缺乏。
+5. **複雜 multi-step API 遷移**：CORBA、JAX-WS 等需要多步推理的廢棄 API 移除率 0%，而 trivial one-to-one 替換 75%，技術差距幾乎是非連續的。
+## D — Program Repair 技術（repair 框架、patch refinement/驗證、專門 repair）
+
+### 概觀與分類圖譜
+
+D 大類涵蓋針對「如何讓 LLM 產出更正確、更可信的 patch」而設計的各種方法，共 18 篇，可大致拆解為四個子方向：
+
+- **D1 Fine-tuning 與訓練策略**：以多目標訓練讓 LLM 習得修復邏輯而非語法 pattern（MORepair）
+- **D2 Patch Refinement 框架**：在初始 patch 之上加入迭代精煉、語意驗證、對抗式強化（REFINE、InfCode、Agent-CoEvo、ExpeRepair）
+- **D3 Repair-time 上下文注入**：specification inference、知識分層注入、文檔驅動定位（SpecRover、RepoRepair、Ehsani et al.）
+- **D4 Patch 驗證與雜訊過濾**：在 patch 產出後以靜態分析、LLM judge、guardrail 機制過濾不正確或有害 patch（REDO、PAGENT、Abstain and Validate、EviACT）
+- **D5 動態執行感知**：以 runtime trace 或 dynamic analysis 替換靜態推測，精確錨定錯誤（DAIRA、LTFix、ContraFix、SGAgent 的 KG+ReAct 流程）
+- **D6 記憶體積累與跨 issue 學習**（ExpeRepair 的雙記憶體機制）
+
+這六個子方向的分界並非硬性，多數論文跨越兩個以上方向；但理解其主導設計選擇，對掌握整體技術張力至關重要。
+
+---
+
+### D1 — Fine-tuning 策略：讓 LLM 習得修復邏輯
+
+**MORepair**（Yang et al., arXiv:2404.12636）是此子類的代表。現有 fine-tuning 用於 APR 多只讓模型學語法轉換 pattern，MORepair 提出**多目標 fine-tuning**：同時優化「生成修復後程式碼」（Loss₁）與「生成修復後程式碼 + 自然語言解釋」（Loss₂），以 Loss = (1-α)·Loss₁ + α·Loss₂（α=0.5）混合，讓模型學會「為什麼要這樣修」而不只是「改成什麼樣子」。
+
+技術細節上，MORepair 以 QLoRA（rank=32）+ NEFTune 降低可訓練參數至 1.88%，解決資料量少（只需 1,535 對 C++ 訓練 pair）、記憶體消耗高的問題。訓練 rationale 以 GPT-4 自動生成，平均 337 詞，明顯比人工標注更詳盡（人工平均 36 詞），且 LLM 生成引導在幾乎所有設定下優於人工引導，差距 3.0–7.9 pp（EvalRepair-C++）。
+
+**核心數字**：CodeLlama-13B 上，MORepair 相對 baseline Top-10 提升 18.8%（58.5→69.5%，EvalRepair-C++）；repository-level SWE-Repair（Python）greedy Top-1 達 19.1%，比 baseline 提升 56%。StdFT 在 StarChat 反而出現負向遷移（-3.7%），MORepair 仍能提升 3.7%，顯示多目標設計的 robustness。
+
+**落差**：MORepair 集中在 7B–16B 開源 LLM，未測試更大模型；D4J-Repair 與 SWE-Repair 的 token 限制（≤1024）限制了對更複雜 repository 場景的評估。
+
+---
+
+### D2 — Patch Refinement 框架：「初始 patch 不夠好」的方法論
+
+這是 D 類中文獻最密集的核心子方向，揭示了當前 APR 的一個重要洞察：**第一次生成的 patch 往往是「草稿」（draft patch）**——可能不完整（未涵蓋所有邊界情況）或過擬合（只通過已知測試但語義有誤）。精煉框架的核心設計空間在：如何定義「精煉信號」以及如何探索「delta patch space」。
+
+**REFINE**（Pabba et al., arXiv:2510.03588）是此子類最系統化的代表。它定義了三道精煉挑戰：缺乏精確上下文、delta patch 探索不足、精煉後候選選擇機制缺失；並以三步驟應對：(1) 結構化 Issue Context 抽取（5-tuple：Target/Logic/Actions/Constraints/Generalization）+ Code Context 建模（data/control dependencies、invariants、call graph）；(2) temperature=0.7 多樣化 delta patch 生成（最多 5 輪 retry）；(3) Reviewer + Aggregation Agent 去重合並。REFINE 以黑盒方式整合於既有 APR 工具之上，對 5 個 baseline 全部帶來提升：AutoCodeRover +20%（36.67%→56.67%）、ExpeRepair +20%、Agentless +16.67%；SWEBench Lite 達 51.67%，Verified 達 63.8%。
+
+**InfCode**（Li et al., arXiv:2511.16004）從另一角度出發：以**對抗式迭代**強化測試訊號。Test Generator 與 Code Generator 互相挑戰——Code Generator 通過現有測試後，Test Generator 重分析 issue 弱點並強化測試，驅使 Code Generator 再次精煉，循環至穩定。加上 Selector agent 以功能正確性、覆蓋率、執行成功率評分，InfCode 在 SWEBench Verified 達 79.4%（Claude 4.5 Sonnet），位居 SOTA 第一（截至 2025-11）。消融顯示 Selection 模組貢獻大於 Adversarial Iteration（移除 Selection：-8 pp；移除 Adversarial：-4 pp），提示「選對 patch」比「迭代更多次」更重要。
+
+**Agent-CoEvo**（Li et al., arXiv:2604.04580）更進一步，將問題重新定義為**代碼種群與測試種群的共演化搜索**：不是以固定 oracle 優化 patch，而是讓代碼 patch 候選集與測試 patch 候選集同時演化，互相評估（binary execution matrix）、語義交叉（LLM 合成互補 offspring）。種群大小 N=10，最多 K=5 輪，resolution rate 從 Iteration 1 的 33.67% 穩定提升至 Iteration 5 的 41.33%（SWE-bench Lite）。Agent-CoEvo 獨家解決 13 個其他方法均失敗的 issue，是次名方法的兩倍，這些 unique case 通常需同時修正實現邏輯與細化行為約束。
+
+**ExpeRepair**（Mu et al., arXiv:2506.10484）則引入**跨 issue 記憶積累**：受雙記憶體理論（episodic + semantic）啟發，每次修復後更新 demonstration 記憶（BM25 檢索）與 insight 記憶（ADD/REMOVE/EDIT 動態維護），讓後續 issue 的 prompt 動態調整。Claude 4 Sonnet 達 SWE-bench Lite 60.3% / Verified 74.6%，是當時所有開源方法最佳；平均成本 $1.89/instance，遠低於同量級的 DARS（$12.24，約 6.5 倍差距）。消融顯示 Episodic Memory 貢獻大於 Semantic Memory（移除 Episodic：-3.6 pp；移除 Semantic：-1.3 pp）；BM25 term-based retrieval 優於 embedding-based，核心原因是錯誤訊息與 stack trace 的 lexical overlap 比語意向量更具區分力。
+
+**子方向內的張力**：精煉框架之間有一個核心取捨——「廣度 vs. 深度精煉」。REFINE 走廣度路線（多樣化 delta 生成 + aggregation），InfCode 走深度路線（對抗迭代強化測試訊號），Agent-CoEvo 走演化路線（種群搜索）。從成本看：InfCode $0.26/issue（最低，用 DeepSeek-V3）、ExpeRepair $1.89/issue、REFINE $6.59/issue、Agent-CoEvo $1.11/issue。更高成本未必換來線性的效能提升，選擇何種精煉策略需依照場景決定。
+
+---
+
+### D3 — Repair-time 上下文注入：「給對資訊」的方法論
+
+這個子方向的核心假設是：LLM 的修復失敗不是推理能力不足，而是上下文不夠豐富或結構不對。三個代表論文各展示了不同的上下文注入策略。
+
+**SpecRover**（Ruan et al., arXiv:2408.02232）在修復流程中加入**迭代式 specification inference**：每次 context retrieval 取得新程式碼片段時，agent 被明確 prompt 生成函式的「在當前 issue 上下文中的預期行為」自然語言摘要（function summary），作為局部 specification 引導 patch 生成；reviewer agent 同時審查 patch 與 reproducer test，輸出判斷依據。SWE-bench Lite 達 31.0%（93/300），precision 50.0%（業界難得的高 precision），獨家解決 12 個所有其他工具都失敗的 issues。72% 的 function summary 與開發者 PR title 涵義相近，意味著自動推斷的 specification 可直接作為 commit message 使用。
+
+**RepoRepair**（Pan et al., arXiv:2603.01048）改走**階層式代碼文檔**路線：先以 Tree-sitter 解析所有原始碼，為每個函式/類別生成函式級文檔（參數、描述、用法注意），再彙總為檔案級文檔（整體功能摘要 + 架構角色）；文檔作為語意中間表示，送入 FAISS 做向量檢索，再用 Chain-of-Thought LLM 推理精確定位。此方法最大亮點在 **SWE-bench Multimodal**（JavaScript/TypeScript，619 issues）：檔案定位準確率 59.77%，大幅超越 Agentless Lite（30.37%）與 GUIRepair（44.29%），近 30% 絕對提升。關鍵洞察：文檔品質對結果影響極大——以 Qwen2.5-7B 替換 DeepSeek-V3 生成文檔，django/django subset 修復率從 58.8% 暴跌至 34.2%。
+
+**Ehsani et al.**（arXiv:2506.24015）在 BugsInPy（314 個 Python bug）上系統實驗**三層知識分層注入**：L1（bug function + failing tests + error info + angelic variables + GitHub issue）→ L2（co-occurring files + structural dependencies + latest commit）→ L3（project documentation + issue resolution history）。Llama 3.3 在三層後達 79%（250/314），比 L1 提升 23%；而一次全注入（All at Once baseline）卻只有 65%，與 L1 持平——過多資訊一次性注入反而讓模型難以辨識最相關上下文，此「information overload」效應有強烈的實踐意義：**知識注入的粒度與順序本身就是關鍵設計變數**。
+
+**SemAgent**（Pabba et al., arXiv:2506.16650）在 workflow-based 框架中加入**三層語意分析**：Issue Semantics（引導 LLM 超越表面範例產出核心意圖的結構化方向）、Code Semantics（對受影響檔案提取 execution flows，分解為 step-level 自然語言描述並以 JSON 格式抽取 code snippets）、Execution Semantics（以 crash report + execution trace + SBFL 三角定位）。Patch Reviewer Agent 以 boolean relevancy flag 篩選無關建議。SWEBench-Lite 達 44.66%（134/300），為所有 workflow-based open-source 方法最高；SemAgent-Multi 擴展為 multi-agent aggregator 可達 51.33%。消融顯示加入 Repair Stage 使解題率從 37% 升至 42%，再加 Reviewer Agent 升至 44.66%，而 Execution Semantics 使定位準確率從 82% 提升至 85.67%（+3.67 pp）。
+
+**SGAgent**（Zhang et al., arXiv:2602.23647）在 locate-fix 之間插入 **Suggest 階段**：Repair Suggester Agent 對每個候選定位做 backward analysis，分析跨位置功能互聯性，生成結構化修復建議（含 rationale、impact_area、risks、references）。消融顯示移除 Suggest 使 resolve rate 從 51.3% 降至 38.0%（-13.3 pp），是所有元件中貢獻最大者，超越 KG 模組（-5.3 pp），清楚說明「推理缺口」（直接從定位跳到修補）是多數 repo 級修復方法的共同軟肋。Claude 3.5 Sonnet 達 51.3%；Claude 4 Sonnet 達 60.7%（182/300）。
+
+---
+
+### D4 — Patch 驗證與雜訊過濾：「排除壞 patch」的方法論
+
+工業部署的現實是：即使 APR 工具能解決部分 bug，若同時向開發者呈現大量無法修復或不正確的 patches，會嚴重侵蝕信任。D4 子方向專門處理此問題。
+
+**Abstain and Validate**（Cambronero et al., arXiv:2510.03217）在 Google 工業環境（174 個 human-reported bugs，Google monorepo）系統評估兩個政策：Bug Abstention（在執行 agent 前過濾不可修復 bug）與 Patch Validation（在呈現前過濾不正確 patch）。Abstention + Validation（p90 threshold）組合可將 filtered fail-to-pass@1 從 11% 提升至 **53%**（4.7 倍改善），即每兩個展示給開發者的 patch 中有一個是正確的。關鍵設計：(1) Abstention 需要 5 條 guidelines（Clear Problem / Precise Localization / Simple Fix / Actionable Context / Self-Contained）才能有效，無 guidelines 的 AP 從 0.434 降至 0.389；(2) Patch Validation 需要先生成 fix specification，無 spec 的 validation 效果大幅降低；(3) 較短的 patch（平均 18.38 行）更容易通過 validation，反映模型對局部修改的理解優於大範圍重構。
+
+**REDO**（Li et al., arXiv:2410.09117）針對 coding agent 引入的 runtime errors，提出兩階段 pipeline：先用 PyRight 做差異靜態分析（只比對修改前後新增的 errors），過濾掉 false positives；再以 LLM（Claude 3.5 Sonnet）做無執行 runtime error 偵測。差異分析的關鍵設計理由：直接應用 PyRight 於原始 Python 腳本會產生 89% false positive；差異分析後大幅改善，LLM 的 recall 比純 PyRight 高 20–38 個百分點，ensemble 的 F1 最優。
+
+**PAGENT**（Xue et al., arXiv:2506.17772）專攻「型態相關失敗」的後處理：先對 769 個失敗 patch 的六類失敗模式做實證分析（最多的是 Shallow understanding of code context 47.74%，其次是 Insufficient type handling 37.34%），再以 repo 級 CFG 靜態分析 + LLM 型態推斷修補 127 個型態相關 patch，成功修復 29 個（22.83%），為 Aider 多帶來 +3.66 pp（26.67%→30.33%）的整體提升。PAGENT 在「複雜資料結構操作」子類表現最強（44.4% of fixes），但對需深度領域知識（如 sympy）的 patch 幾乎無能為力。
+
+**EviACT**（Meng et al., arXiv:2605.27238）以**三道跨階段 guardrail** 控制 workflow-based APR 的狀態轉移：Retrieval Scaffold（基於 RED 執行證據的確定論式 code graph 檢索）、Compile Gate（過濾 malformed diff / build 失敗 patch）、Test-Driven Gate（確保目標測試轉 GREEN + 全回歸通過）。GPT-4o 在四個 benchmark 全達最優：Defects4J 2.0 25.0%、SWE-bench Verified 40.4%、SWE-bench Lite 38.0%、SWE-bench Live 16.0%；成本 $0.17–$0.23/bug，比 SWE-Agent（$2.42–$2.53）低 88.6%。GPT-5.2 組合更達 SWE-bench Lite 64.0% / Verified 70.2%。消融顯示三道 guardrail 合計貢獻 +13 pp，且節省 84.1K tokens 與 195.3s runtime——guardrail 不是只過濾壞結果，而是主動引導搜索路徑、降低無效嘗試。
+
+---
+
+### D5 — 動態執行感知：用 runtime trace 取代靜態推測
+
+靜態分析在面對隱式型別、多態派發、跨檔案副作用時能力有限；D5 方法的核心主張是**讓 agent 能「看到」程式執行，而非只能「推測」程式行為**。
+
+**DAIRA**（Liu et al., arXiv:2603.22048）是此子方向的旗艦工作。其論點直截了當：LLM 修復失敗的根本瓶頸不是語言或推理能力不足，而是「execution-level observability 缺失」。DAIRA 以客製化 Hunter engine（Python \`sys.settrace\` + spatiotemporal filtering）做 native in-process execution tracing，Trace Log Semantic Analysis 模組將 raw trace 解析為三層結構化報告（hierarchical logic reconstruction / key function analysis / workflow introduction）。結果：DAIRA + Gemini 3 Flash Preview 達 SWE-bench Verified 79.4%（與 InfCode 並列 SOTA），同時 input token 消耗比 SWE-agent 降低 15.6–39.1%——動態分析帶來的是「精準打擊」而非「廣域撒網」。消融中移除 Trace Log Semantic Analysis 不只使解決率從 74.20% 降至 65.80%（-11.32%），成本反而上升 +7.56%（raw trace 引入雜訊），說明「讀 trace 的能力」和「有 trace」同等重要。
+
+**LTFix**（Cheng et al., arXiv:2506.18394）將動態分析聚焦於 C 語言記憶體錯誤（use-after-free、double-free、memory leak），以 **Finite Typestate Automaton（FTA）** 引導 GDB 執行，只記錄「typestate 發生轉換」的語句，精準壓縮 context。完整 LTFix 消耗 411,900 tokens；若不做 typestate 引導的選擇性壓縮則需 22,950,414 tokens——超過 **50 倍 token 節省**。正確修復 37/49 個真實記憶體錯誤，比 SWE-agent 修復數（19 個）高出 94.7%，token 消耗則約 42 倍少於 SWE-agent。
+
+**ContraFix**（Liu et al., arXiv:2605.17450）針對漏洞修復，以「**對比運行時分析**」區分因果變數與偶發共現變數：Mutator 生成跨越漏洞邊界的 PoC 變體，Analyzer 以 point probe + span probe 蒐集各變體的結構化 JSON 狀態記錄，跨變體保持不變的為偶發性、系統性分歧的為因果性。搭配**雙軌技能庫**（repair skill + mutation skill，三層優先檢索）跨 CVE 積累知識。SEC-Bench（C/C++，200 CVE）達 84.0%，比先前最強基線 AgentMem/GPT-5.2（75.0%）高 9 pp，且成本僅 $0.32/task（AgentMem $1.07，三分之一不到）；PatchEval（Go/Python/JavaScript）達 73.8%，以弱 backbone（GPT-5-mini）幾乎翻倍最強通用基線 OpenHands（37.4%）。
+
+**動態分析 vs. 靜態分析的核心張力**：REDO 的結論是「靜態分析 precision 高 recall 低，LLM recall 高 precision 低，ensemble 最優」——與 DAIRA 的「動態優於靜態」表面矛盾，但兩者任務不同：REDO 做 patch safety check（偵測 agent 引入的 regression），DAIRA 做 bug localization 與修復引導。對 Java/Python 的 functional bugs，靜態分析難以捕捉動態 control flow；對 C/C++ 記憶體錯誤，typestate 形式化可以精確建模（LTFix）；對跨語言漏洞，對比執行（ContraFix）最能區分因果。
+
+---
+
+### D6 — 記憶積累與跨 issue 學習
+
+除 ExpeRepair（已在 D2 介紹）之外，ContraFix 的雙軌技能庫也屬此方向：每次成功修復都存入技能庫，後續 CVE 修復時三層優先檢索（同 repo + 同漏洞類型 > 跨 repo 同漏洞類型 > embedding 回退）。消融顯示雙軌技能庫貢獻整體 +9.0%（E4: 75.0% → Full: 84.0%），其中 mutation skills 主要提升對比對質量，repair skills 主要引導 patch 生成，兩軌互補而非冗餘。
+
+ExpeRepair 的縱向研究顯示處理 20 個 issue 後 cumulative resolution rate 才開始穩定並逐步提升，Django（114 issues）在 issue 80 後穩定於約 60%——記憶體的「熱啟動」效益需要足夠多的歷史案例才能充分顯現，這對只有少量 issue 的 repo 限制明顯。
+
+---
+
+### 子類之間的張力與取捨
+
+**精煉 vs. 過濾**：Refinement 框架（REFINE、InfCode、Agent-CoEvo）投入更多計算探索更廣的解空間；Validation/Filter 框架（REDO、PAGENT、Abstain and Validate）在有限 budget 下提升呈現給人的 patch 品質而不增加修復嘗試次數。兩者並不互斥——EviACT 的 guardrail 既是過濾機制也是引導精煉的信號；Abstain and Validate 的 combined 政策達到 53% filtered success@1，比任一單獨政策高出 8–18 pp。
+
+**靜態 specification vs. 動態 trace**：SpecRover 的 function summary 與 RepoRepair 的文檔都是靜態語意表示，優點是 token 可預測、可快取（RepoRepair 文檔生成 $0.12，後續攤薄）；DAIRA、LTFix、ContraFix 的動態分析在 runtime 才取得，成本不可預知但資訊精確度更高。Ehsani et al. 的「All at Once」baseline 失敗佐證：靜態資訊質量不等於越多越好，分層注入才有效。
+
+**通用 APR vs. 語言/錯誤類型特化**：MORepair、ExpeRepair、REFINE 瞄準通用 Python/Java repository-level issues；LTFix 只針對 C 記憶體錯誤、ContraFix 只針對 CVE 漏洞——特化系統在各自定義域明顯優於通用系統（LTFix 超越 SWE-agent 94.7% in fixed count），但適用範圍窄。
+
+**成本梯度**：整個 D 類橫跨巨大成本範圍：EviACT $0.17/bug（最低）→ InfCode $0.26 → Agent-CoEvo $1.11 → ExpeRepair $1.89 → REFINE $6.59（含 outlier）。更高成本不保證線性效能提升：DARS 以 $12.24 達 47%，ExpeRepair 以 $1.89 達 60.3%——成本效率是工業部署的關鍵約束。
+
+---
+
+### 演進方向
+
+**早期（2024）**：SpecRover、REDO 建立了「specification inference」與「patch safety check」的基本框架，SWE-bench Lite 解決率圍繞 20–31%。Fine-tuning 方向（MORepair）顯示訓練邏輯的重要性。
+
+**中期（2024 下半–2025 初）**：REFINE、ExpeRepair、SGAgent 將精煉與記憶積累系統化，解決率提升至 40–51%。階層式知識注入（Ehsani et al.）的實驗揭示「information overload 反效果」，促使更精細的上下文選擇設計。
+
+**近期（2025–2026 初）**：動態分析獲得重大突破：DAIRA 達 79.4%（Verified），ContraFix 在安全漏洞修復達 84.0%。InfCode 以對抗迭代同時達 79.4%（Verified）。成本效率成為核心競爭維度（EviACT $0.17 vs. SWE-agent $2.42 同樣有效）。
+
+---
+
+### 主要落差與未解問題
+
+1. **跨語言 gap**：大多數方法在 Python 上評估（SWE-bench），LTFix 專攻 C，ContraFix 試驗 Go/JavaScript（JavaScript 63.2%，明顯偏低）。大型 JavaScript/TypeScript codebase 的 APR 仍不成熟，RepoRepair 在 Multimodal benchmark 是目前最強但仍只有 37.14%。
+
+2. **定位準確率的天花板**：多個論文（EviACT、SGAgent）的失敗分析顯示 40–50% 失敗源於 mislocalization，而非修補能力不足。定位精度的提升（dynamic trace、KG、semantic retrieval）是整個 D 類效能提升的主要槓桿。
+
+3. **overfitting 問題未被根本解決**：EviACT 顯示即使在 resolved patches 中仍有 11.5% 為 overfitting（通過測試但硬編碼行為）；Abstain and Validate 也觀察到 patch precision 上限（spec-based validation p90 最高 0.53）。
+
+4. **Bug abstention 的 guidelines 設計依賴人工歸納**：Abstain and Validate 的 5 條 guidelines 由作者手工歸納，換到不同開發實踐（非 Google 環境）需重新調整，缺乏自動化 abstention criterion 學習機制。
+
+5. **記憶積累 cold-start**：ExpeRepair 需 20+ issues 才能有效，ContraFix 需 CVE 時間過濾防洩漏。對於新 repo 或少 issue 場景，跨 issue 學習效益有限，此仍是開放問題。
+
+6. **大型失敗測試輸入的 lost-in-the-middle 問題**：ReduceFix（Yang et al., arXiv:2507.15251）揭示了一個實踐中常被忽略的問題：當失敗測試輸入過大（可達數 MB），LLM 會產生「lost-in-the-middle」效應，修復準確率下降。ReduceFix 以 LLM one-shot 生成任務專屬 reducer（以 ddmin 演算法為骨幹），在 LFTBench（200 個競程 C++ bugs，median 失敗輸入 1 MB）上成功縮減率 95.0%，平均壓縮率 89.1%，token 成本從 $0.632 降至 $0.017（約 3%）；pass@10 在所有 4 個測試 LLM 上均提升（小模型提升最大：Qwen2.5-Coder-7B-instruct +27.5%），直接提供完整失敗測試反而使部分強模型性能下降（GLM-4-9B pass@10 從 8.5% 降至 6.5%）。此方向點出「如何準備修復所需的 context」本身是一個獨立的研究問題，而非只是 prompting 的附屬細節。
+## E — SWE Model Training & Data（SWE 特化訓練、資料建構、Reward/RL）
+
+### 概述
+
+E 類涵蓋針對大型代碼庫維護與修復任務所進行的 **模型特化訓練**，包含訓練資料的建構方式、fine-tuning 策略（SFT/RL/DPO）、reward 設計，以及資料品質提升（去異味、聯邦學習）等面向。16 篇論文形成一個從「如何取得訓練資料」到「如何在資料上有效訓練」再到「如何以 RL 超越監督訓練上限」的完整技術譜系，並揭示多條清晰的演進脈絡與尚未解決的核心張力。
+
+---
+
+### E1 — 訓練資料的來源策略：真實 PR、合成、鏡射三路並進
+
+訓練資料的取得是整個 E 類的根本問題，可劃分為三條主線：
+
+**真實 GitHub PR 挖掘**是最直接的路線。Clean-PR (arXiv:2602.07457) 從 274k 個 repository 爬取 16.4M 個 PR，嚴格過濾後保留 18.59%（3.05M 筆、46.4B tokens）。其核心貢獻在於 Search/Replace 格式的重建——以 Round-trip 驗證確保格式正確，並補入 linked GitHub issue 文字，使訓練訊號同時含有「問題定義」與「代碼實現」兩側。Skywork-SWE (arXiv:2506.19290) 則針對 issue-resolving 任務，從 151K 個 repository 篩選出帶測試驗證的 10,169 筆實例，並以 multi-LLM rollout 收集 8,209 筆成功軌跡。ReSAT (arXiv:2412.19031) 從 PyPI 前 5,000 套件的 229 個 repo 建構 80,260 筆 localization + code edit 訓練資料，完全不依賴 LLM 合成，直接用 PR diff 與 \`libcst\` 抽取三粒度（file/function/line）定位目標。SWE-Tester (arXiv:2601.13713) 以類似思路建構 issue reproduction test 生成的訓練資料，匯整 140K issue-PR pairs 後嚴格過濾至 23K，專門訓練 LLM 寫出能讓 bug 重現的測試，是訓練目標罕見的差異化。
+
+**合成資料生成**是針對真實資料數量不足的補充策略。SWE-Synth (arXiv:2504.14757) 從原始正確程式選取元件、遮蔽後讓 LLM 重新實作以產生 bug，再以 test 驗證並用 Rollout Rejection Sampling 收集修復軌跡。其人類辨別實驗顯示合成 bug 難以與真實 bug 區分（正確率僅 55.17%，接近隨機），說明合成品質相當真實。RepoForge (arXiv:2508.01550) 則更進一步，以多 agent ReAct 框架自主探索 GitHub repository 並建置 Docker 環境，產出 7,304 個完全驗證的任務，0% 人工介入，並以 SPICE 自動難度評估系統（對 7,000+ instances 標記，達人工標記 87.3% 準確度，成本降低 19,600 倍）過濾高品質資料。
+
+**跨 Repo 鏡射**是 SWE-Mirror (arXiv:2509.08724) 提出的新典範：將 source repo 的真實 PR 語意本質「移植」到已有 Gym 環境的 target repo，從而以少量 Gym（40 個 repo）解鎖大量真實問題歷史，最終產出 60,671 筆多語言（Python/Rust/Go/JavaScript）驗證任務（SWE-Mirror-60K）。整體鏡射成功率 46%，Python 最高（68%），Rust 最低（28%）；人工語意忠實度評估顯示 88.1% 為 High 或 Moderate consistency。其以 100GB 儲存成本達成原本需要 100TB 的規模，是儲存效率上的重大突破。
+
+**三條路線的張力**：真實 PR 挖掘的品質高、語意豐富，但建置驗證環境（Docker、測試執行）成本極高；合成資料可無限擴充，但需要解決 realistic bug 生成的質量控制；鏡射方法保留語意豐富度但依賴 seed Gym 數量，且在強型別語言（Rust/Go）的編譯錯誤率較高。SWE-Synth 的消融實驗顯示合成資料在大量（9,459 variants）時才明顯超越手工資料（15.3% vs 13%），說明品質控制對合成路線至關重要。
+
+---
+
+### E2 — 訓練策略譜系：SFT、Curriculum、DPO、RL 的疊加結構
+
+訓練策略的演進從單純 SFT 走向越來越精細的多階段疊加。
+
+**SFT + Curriculum Learning**是早期主流。Lingma SWE-GPT (arXiv:2411.00622) 以「開發流程導向」三階段 SFT pipeline（Repository Understanding → Fault Localization → Patch Generation），從 ~90K 個已 merged PR 以 Rejection Sampling（Jaccard similarity ≥0.6 + CodeBLEU ≥0.5）過濾訓練資料，並以 Curriculum Learning 逐步納入困難案例、每次迭代從原始 checkpoint 重新初始化以防早期低品質資料過擬合。結果：72B 版在 SWE-bench Verified 達 30.20%，首個超過 30% 門檻的開源模型，且 API 成本為零（對比 GPT-4o 需 $390）。
+
+**ReSAT** (arXiv:2412.19031) 的消融研究揭示一個重要發現：Localization 訓練資料對 issue resolving 的貢獻遠大於 code edit 資料（7B 模型：Localization-only +4.0%，CodeEdit-only +1.0%，兩者合併 +6.4%）。這說明模型在 repo 任務中的瓶頸往往在「定位」而非「修改」，對訓練資料設計有直接指引意義。
+
+**DPO（Direct Preference Optimization）**首次在代碼補全領域被系統整合進 SynthCoder (arXiv:2508.15495)。SynthCoder 在 Curriculum SFT 後以 DPO 對齊，利用從微調後 checkpoint 採樣的 rejected candidates（含 suffix-repetition suppression pairs），在 FIM 補全任務上顯著抑制 context repetition 問題（suffix repetition 降至 0.38%，對比 StarCoder2-7B 的 1.38%）。ExecRepoBench Pass@1 提升 +24.5%，顯示 DPO 對代碼生成品質校準有實際效用。
+
+**RL（Reinforcement Learning）**是近期最受重視的方向。RepoForge (arXiv:2508.01550) 的消融實驗清楚量化了 SFT → RL 的增益路徑：Base → SFT（12.7%）→ SFT+RL（17.4%），RL 帶來 4.7 個百分點提升；但若直接從 base model 做 RL（無 SFT 熱啟動）僅達 7.8%，說明 SFT 的熱啟動對 RL 至關重要。CodeScout (arXiv:2603.17829) 則以純 RL（無 SFT）在 code localization 子任務上取得 1.7B 模型超越 Qwen3-14B（8 倍參數）的成果，工具集僅 Unix terminal，reward 為三粒度 F1 加總。
+
+---
+
+### E3 — Self-play RL 與無人工資料訓練：SSR 的突破與瓶頸
+
+Self-play SWE-RL（SSR）(arXiv:2512.18552) 代表訓練資料依賴問題的一種終極解方：完全不需要人工標注，僅需存取 sandboxed repositories，讓單一 LLM 同時扮演 bug-injection agent 與 bug-solving agent，以 RL 聯合訓練。
+
+其技術設計精巧：bug artifact 由 5 個檔案組成（包含 test_weaken.diff 以隱藏 bug），consistency validation 含 5 項自動檢查；bug-injection reward 以 solve rate s 設計為 \`1-(1+α)s\`，目標讓 challenger 找到「既非 trivially solvable 也非 impossible」的最適難度點；history-aware injection 從 git log 反轉歷史 bug fix 以生成語意豐富的 bug。
+
+核心成果：SSR 在 SWE-bench Verified 上從 41.0% 提升至 51.4%（+10.4 pp），且持續優於使用人工資料的 baseline RL（49.0%）。消融顯示 self-play 最佳（38.0% 平均），injection-only 最差（25.2%），強調雙角色聯合訓練的必要性。
+
+然而 SSR 也揭示了 self-play 的邊界：合成 NL issue descriptions 失敗（生成 issues 傾向複製 test patch，歸因 32B 模型 NL 能力限制）；規模化時出現 gibberish 輸出不穩定性；理論分析指出 challenger 存在 dominant strategies 可停止 self-play 進步（如 fail-randomly 與 tunnel-vision 策略）。這些限制揭示 self-play RL 仍需更強基座模型與對 challenger 的額外約束。
+
+---
+
+### E4 — Reward 設計的挑戰：Process Reward 的對齊困境
+
+SWE-Shepherd (arXiv:2604.10493) 提出以 Process Reward Model（PRM）為代碼 agent 提供 dense、step-level 監督，在 SWE-Bench 軌跡上以啟發式指標計算每個中間步驟的 reward，訓練輕量 reward model 在推論時引導 agent 選擇高品質動作。
+
+然而核心發現揭示深刻的對齊困境：resolved tasks 的平均 reward（0.4894）與 unresolved tasks（0.4818）差異極小，說明當前 reward function 與最終 task success 僅弱相關。PRM 引導下步數確實減少（12.2 vs 15.2），但解決率從 57% 下降至 51%，顯示局部高 reward 動作不一定導致全局正確 patch。
+
+這與 SSR 中 bug-injection reward 的設計挑戰形成共鳴：SSR 發現「solver feedback 對 bug-injection reward 改善有限」（38.0% vs binary baseline 35.3%），假說為 solve rate 的梯度估計在少量 noisy samples 下被 smooth。兩者共同指向 **中間步驟 reward 的設計與任務最終成功之間的對齊仍是開放問題**。
+
+---
+
+### E5 — 資料 Scaling Law 的實證：對數線性還是有上界？
+
+Skywork-SWE (arXiv:2506.19290) 首次在 SWE 任務上系統性驗證資料 scaling law：訓練軌跡數從 125 到 8,209 呈 log-linear 改善趨勢，無飽和跡象。Skywork-SWE-32B 達 SWE-bench Verified 38.0%（pass@1），加 Best-of-N（N=8）後達 47.0%。
+
+SWE-Mirror (arXiv:2509.08724) 的 scaling 實驗顯示 32B 模型 resolve rate 從 baseline 6.2% 隨 trajectory 數增加（512→4096）持續提升至 35.6%，且 scaling 趨勢在兩個模型尺寸、三種訓練策略下一致。SWE-Tester (arXiv:2601.13713) 顯示即使只用 5% 訓練資料，14B 模型 success rate 即提升 8 個百分點；但 14B 在 50% 資料後趨於平穩，而 32B 尚未飽和，說明 scaling 效益依模型規模而異。
+
+RepoForge (arXiv:2508.01550) 則發現小模型（8B）的 **overfit 上限**：SFT 資料超過 1,000 trajectories 後效能開始下滑（1,000 → 12.7%，2,000 → 10.7%），說明資料 scaling law 對小模型有容量上界，高品質少量資料勝於大量低品質資料（SPICE 過濾的高品質 1,202 trajectories 達 12.7% vs 隨機取樣 3.0%，4.2 倍差距）。
+
+---
+
+### E6 — 特殊訓練場景：聯邦學習、反混淆、訓練資料去異味
+
+三篇論文探索了傳統 SWE fine-tuning 框架之外的特殊場景：
+
+**聯邦學習 APR**（arXiv:2412.01072）在資料隱私限制下，以 QLoRA + FedAvg 微調 6 款 LLM 做 bug 修復。核心發現：聯邦微調在 4 款模型上甚至優於集中式微調（Mistral-7B Pass@10 提升 16.98%），而本地微調（Local fine-tuning）表現最差（DeepSeekCoder-7B Top@10 下降 21.47%）。資料異質性（feature-skewed Non-IID）對整體性能統計上無顯著影響（p≥0.05），部分極端 Non-IID 反而帶來額外提升。這顯示聯邦學習在代碼 APR 的實際可行性，且 Non-IID 資料的多樣性可能提供正則化效益。
+
+**LLM 反混淆 + Symbolic Execution 結合**（arXiv:2511.19130）展示以 KLEE 符號執行 artifacts（SMT2 約束、KQuery 表達式、ktest 測試案例）作為 LLM fine-tuning 的額外訓練訊號。GPT-4.1-mini 在 Arithmetic Encoding 的語義保存分數從 86.08 提升至 94.70（+8.62）。但關鍵發現是：未 fine-tune 的模型注入 KLEE artifacts 往往降低編譯成功率（模型無法解讀這些格式），fine-tuning 是 KLEE artifacts 發揮作用的前提。
+
+**訓練資料去異味（SmellCC）**（arXiv:2508.11958）發現 CodeSearchNet-Python 廣泛存在 code smells（最多為 Naming Convention 13.3 萬例），且以有異味資料 fine-tune 後，生成代碼的異味反而高於 base model，形成「污染放大」效應。SmellCC 以 Role + CoT + Few-shot prompt engineering 自動清理 91.6% 的異味，fine-tune 後代碼異味減少 61.0%–83.1%，Code Completion Pass@1 提升 7.9%–12.2%。這是訓練資料清洗視角最直接的實證，揭示訓練集品質對輸出品質的直接傳遞效應。
+
+---
+
+### E7 — 細分訓練目標：Issue Reproduction Test 生成（SWE-Tester）
+
+SWE-Tester (arXiv:2601.13713) 代表訓練目標的差異化：專門訓練 LLM 生成能重現 bug 的測試（而非修復 bug）。這個定位基於一個關鍵觀察：issue reproduction 與 resolution 能力無相關性（Mündler et al. 2024），屬於獨立難度的任務，且可加速 root cause analysis 並支援 TDD。
+
+訓練資料從 140K issue-PR pairs 過濾至 23K，fine-tune Qwen2.5-Coder（7B/14B/32B）後，14B 模型 success rate 提升 +10.40 pp（1.39% → 11.79%）。最重要的效率發現：fine-tuned 14B 以 3.2 倍更少 sample 超越 oracle localization 設定下的 base 32B 模型，且 14B fine-tuned 比 base 32B 高出 3.92% success rate。這說明任務特化 fine-tuning 在 test generation 子任務上效率遠優於依賴模型規模。
+
+SWE-MIMIC-Bench (arXiv:2604.25880) 則以不同方式切入：從 GitHub issue 討論 thread 萃取多方協作推理軌跡，以 label-guided 動態 schema 區分 bug/enhancement 等不同 issue 類型的認知流程，從 800 條 thread 產出 734 條高品質推理軌跡。這是訓練資料的內容層次差異化（捕捉時序推理而非靜態映射），但目前停留在資料集建構階段，尚未驗證對模型訓練的實際增益。
+
+---
+
+### 子類之間的核心張力與取捨
+
+**資料真實性 vs 規模**：真實 PR（Clean-PR、ReSAT）品質最高但建置驗證環境昂貴；合成資料（SWE-Synth、RepoForge）可擴充但需嚴格品質控制；鏡射（SWE-Mirror）兼顧，但依賴 seed Gym。三者的成本-品質 frontier 尚未有系統性比較。
+
+**RL vs SFT**：RepoForge 清楚量化 RL 在 SFT 之上帶來 4.7 pp 增益，但 SFT 熱啟動是前提；CodeScout 顯示在局部子任務（localization）上純 RL 即可超越大模型。SSR 則在完整 issue resolution 任務上展示 RL 能超越人工資料訓練的 baseline。**但 RL 對 reward 函數設計極度敏感**（SWE-Shepherd 的對齊困境），且訓練基礎設施要求高（SSR 用 512 H100 GPU）。
+
+**模型大小 vs 訓練效益**：ReSAT（7B SLM 訓練後在 Agentless 框架下從 0.8% → 7.2%）與 SWE-Tester（14B fine-tuned 超越 base 32B）均顯示特化 fine-tuning 可以任務特化能力彌補參數規模劣勢。SWE-Synth 亦顯示 7B fine-tuned 模型的相對增益最大（Weak-to-Strong distillation 效應）。然而 RepoForge 發現小模型（8B）在超過 1,000 trajectories 後出現 overfit，說明小模型的訓練資料量存在最適區間。
+
+---
+
+### 演進方向與落差
+
+**早期（2024）**：聚焦 SFT + Rejection Sampling（Lingma SWE-GPT），重點在如何過濾高品質訓練軌跡；訓練目標為 end-to-end issue resolution。
+
+**中期（2024-2025 初）**：多路並進——合成資料生成（SWE-Synth、RepoForge），資料 scaling law 驗證（Skywork-SWE、SWE-Mirror），特化訓練目標（ReSAT 的 localization-first，SWE-Tester 的 test generation）；開始引入 DPO（SynthCoder）。
+
+**近期（2025-2026）**：RL 主導——CodeScout 以純 RL 訓練 localization，SSR 以 self-play RL 消除人工資料依賴，SWE-Mirror 以 error masking 策略改善 RL 訓練訊號質量。訓練基礎設施本身成為研究對象（RepoForge 的分散式評估引擎）。
+
+**主要落差**：
+1. **Reward 對齊**：中間步驟 reward 與最終 task success 的關聯性仍弱（SWE-Shepherd 的 0.4894 vs 0.4818），PRM 如何設計才能真正引導優化仍是開放問題。
+2. **多語言訓練**：絕大多數訓練資料以 Python 為主；SWE-Mirror 的跨語言泛化實驗（Rust training → Python 任務有 +10.3 pp）暗示抽象能力可遷移，但尚未有系統性多語言 training recipe。
+3. **自我改進的穩定性**：SSR 在 32B 規模化時出現 gibberish 輸出，self-play 的穩定訓練機制尚未完善。
+4. **資料污染的嚴謹控制**：Skywork-SWE 自陳訓練與測試來自同一倉庫 PR 的洩漏風險；Clean-PR 的污染分析（Pearson r=-0.061，不顯著）提供了一個方向，但業界標準尚未統一。
+5. **訓練計算成本**：SSR 需要 512 H100 GPU，SynthCoder 的 DPO 階段需 4 × H800 × 24 小時，這些基礎設施需求限制了廣泛可重現性。
+## A — Issue Resolution Agents（多 agent 協作、ensemble 與 test-time scaling）
+
+### A.0 概述：為何 issue resolution 需要 agent 編排？
+
+直接以 LLM 解決 GitHub issue 的成功率極低——早期實驗顯示 GPT-4 直接應用僅達 1.74%（MAGIS, arXiv:2403.17927）。根本原因已在多篇論文中被量化：正確的**程式碼行定位**（coverage ratio）與 issue 解決率呈統計顯著正相關；修改涉及的檔案數、函式數與解決率呈顯著負相關（MAGIS, Table 1）。單一 LLM 呼叫面對數十萬行規模的 repository，既無法做多步定位，也無法處理跨檔案依賴。
+
+本類論文的主要演進邏輯如下：**早期（2024 年初）**：用固定角色分工的 multi-agent 框架（MAGIS、MASAI）替代單次 LLM 呼叫，獲得 8-15× 解決率提升；**中期（2024 下半至 2025 初）**：加入 ensemble 與 reranking（DEI），以及跨任務通用化（HyperAgent）；**近期（2025-2026）**：test-time scaling 正式成為主線——MCTS 導向搜尋（CodePilot, SWE-Search）、軌跡演化（SE-Agent）和 agent-based ensemble（Trae Agent）推動 SWE-bench Verified 解決率從 30% 突破至 75-80%。
+
+---
+
+### A.1 固定角色分工：MAGIS 與 MASAI 的奠基路線
+
+**MAGIS**（Tao et al. 2024, arXiv:2403.17927）是本領域最早的系統化 multi-agent 框架之一。其設計圍繞四個具名角色：Manager（任務分解、主持 kick-off 會議）、Repository Custodian（BM25 + LLM 記憶機制做檔案定位）、Developer（逐 hunk 生成修改）、QA Engineer（審核迴圈）。在 SWE-bench 25% subset 上達到 **13.94% resolved ratio**（GPT-4 直接應用 1.74%，提升 8×）；SWE-bench Lite 上達 **25.33%**。消融顯示 QA Engineer 單獨貢獻 +3.31%，去除 hints 貢獻 −3.66%；兩者都去除後仍比直接 GPT-4 高 5×，說明「角色分工」本身即有獨立價值，並非僅靠提示設計。
+
+MAGIS 的技術張力在於「記憶壓縮 vs. 定位精度」的取捨：Repository Custodian 用 \`git diff\` 摘要壓縮 context，犧牲細節換取長 context 可用性；這使複雜多檔修改（如涉及 13 個檔案、28 個 hunk 的案例）仍較難解決，複雜度負相關雖從 GPT-4 的 −25.15 降至 −1.55，但並未消除（Table 3）。
+
+**MASAI**（Arora et al. 2024, arXiv:2406.11638，Microsoft Research India）進一步把 sub-agent 拆細為五個更明確的功能模組，每個都有定義明確的 Input/Strategy/Output tuple：Test Template Generator（探索 repo 取得 test framework 資訊）→ Issue Reproducer（寫出能重現 bug 的測試）→ Edit Localizer（ReAct loop 找 edit locations）→ Fixer（CoT 生成多候選 patch）→ Ranker（以 Issue Reproducer 的測試排名選最佳）。
+
+MASAI 的關鍵創新有二：(1) **取樣 + 排名**取代單次生成——5 個候選 patch 的 oracle 上限為 35.00%，而 Ranker 達到 28.33%；去除測試驗證的 Ranker 僅 23.33%，顯示能執行的 reproduced test 是排名有效性的關鍵；(2) **最小重寫（minimal rewrite）+ fuzzy matching**——Fixer 只輸出「原始片段→修改片段」，以 fuzzy matching 找對應位置，edit application rate 達 **95.33%**（SWE-bench Lite 第一）。最終解決率 **28.33%**，並列 SWE-bench Lite 第一（與 CodeR）。
+
+MAGIS 與 MASAI 的共同設計選擇是**靜態角色分工**——每個 sub-agent 只在預定義流程中運作，上下游依賴固定。這帶來可解釋性和除錯便利，但面對不符合預設流程的 issue 時缺乏靈活性。
+
+---
+
+### A.2 動態工作流與跨任務通用化：HyperAgent 與 USEagent
+
+**HyperAgent**（Phan et al. 2024, arXiv:2409.16299，FPT Software / UT Dallas）延伸 MASAI 的分工思路，轉向**通用化**設計。四個角色（Planner、Navigator、Code Editor、Executor）以非同步 Message Queue 通訊，支援多 Navigator/Editor/Executor 實例並行。核心差異包括：(1) Planner 使用輕量 LLaMA-3.1-8B summarizer 壓縮子 agent log 再回傳，降低長軌跡 context 開銷；(2) Navigator 配備 Zoekt trigram 搜尋 + LSP protocol + ctags 等靜態分析工具；(3) 同一套框架不改設定即可跨四個 benchmark：SWE-bench Verified（33.00%）、RepoExec code generation（Pass@5 53.33%）、Defects4J fault localization（Acc@1 59.70%，超越次佳 AutoFL 8.7 pp）、Defects4J program repair（835 bugs，22.9% correct）。
+
+成本效益方面，HyperAgent-Lite-1 在 SWE-bench Lite 達 **25.33%**，cost 僅 **$0.45/instance**（SWE-Agent + GPT-4o $2.55 的 17.6%）；平均 106s 對比 AutoCodeRover 720s，快約 6.8×。消融顯示移除 Navigator 衝擊最大（27→19%），移除 Editor 次之（27→12%）。
+
+**USEagent**（Applis et al. 2025, arXiv:2506.14683，NUS / Purdue）更進一步主張「動態工作流」：Meta-Agent 在執行時根據 task state 動態決定下一個 action，而非預定義流程。USEbench 整合五個子 benchmark 共 1,271 個 repository-level tasks。關鍵結果是：USEagent 在 SWE-bench-verified 達 **45.6%**，與專化 AutoCodeRover **46.2%** 相差不到 0.6%，但同時在 regression testing（40.3% vs OpenHands 28.4%）、test generation（31.8% vs 26.0%）上有更大優勢。消融顯示固定工作流導致整體效能下降 −9%；REPOCOD code generation 任務降 25%（動態路由對 unseen task 結構最關鍵）。
+
+**張力**：通用化 vs. 效能。HyperAgent 與 USEagent 都證明通用 agent 可接近專化系統，但在最困難任務（REPOCOD, 6.0%）上仍遠低於人類能力，顯示「通用框架 + 動態路由」並未真正解決 edge case 的語義理解缺口。
+
+---
+
+### A.3 Ensemble 與 Meta-Policy：DEI 的多元性利用
+
+**DEI**（Zhang et al. 2024, arXiv:2408.07060，Salesforce AI Research / CMU）的出發點是一個重要實證觀察：10 個 resolve rate 相近（26-27%）的 SWE agent，Union@10 = **54.3%**，而 Average@10 = 26.6%——oracle 可達到平均值兩倍以上的解決率，說明不同 agent 解決的 issues **集合高度互補**，而非重疊。更關鍵的是：10 個不同 agent 的多樣性顯著大於同一 agent 跑 10 次的隨機多樣性。
+
+DEI（DEIBASE 實作）作為 meta-policy，對每個候選 patch 依序生成五類 explanation（issue explanation、context explanation、location explanation、patch explanation、conflict detection），再以 LLM 評分選最佳。三個評分變體：DEIBASE-1（top-2 closed-source agent）達 **55% resolve rate**（SWE-bench Lite），DEIBASE-Open（4 個 open-source agent）達 **34.3%**，超越大多數 closed-source 方案。解釋生成有益但非決定性——有 vs 無 explanations 差距 2-3 pp（Table 3）。
+
+DEI 的設計張力在於：(1) 規模限制——k 增大後性能先增後趨平甚至略降，不適合 k 非常大的 ensemble；(2) context 品質瓶頸——relevant context 直接來自 Moatless Tools，未針對 patch 做客製化，影響評分精度。
+
+---
+
+### A.4 Test-Time Scaling：MCTS 與搜尋路徑導向
+
+**CodePilot**（Liang et al. 2026, arXiv:2602.00129，IIT Chicago）將 patch 生成形式化為決策樹搜尋，以 MCTS 在語意單元（code statement）層級探索多條路徑。UCT 公式引入 LLM prior：$\\text{UCT}(s,a) = Q(s,a) + c_1\\sqrt{\\ln N(s)/N(s,a)} + \\beta \\log P_\\theta(a|s)$，以 LLM 先驗偏置探索方向。Reward 採分層設計（0→0.2→0.5+→1.0），先 static check 再執行測試，降低昂貴測試呼叫頻率。
+
+在 SWE-bench Lite 上，同樣使用 Qwen3-8B-Instruct，CodePilot 達 **24.67%**，比 Agentless baseline **19.33%** 高 +5.34 pp。消融顯示 MCTS 單獨貢獻最大（移除後 −4.34%），其次為 thinking mode（−3.67%）和 self-refinement（−3.00%）。作者指出錯誤 fault localization 佔所有失敗的三分之一，是當前主要瓶頸。
+
+**張力**：MCTS 搜尋深度 vs. 計算成本。CodePilot 使用 N=16 次 MCTS simulation，搭配 tiered evaluation 降低成本，但相比 greedy decoding 仍顯著增加 token 消耗。
+
+---
+
+### A.5 Agent-Based Ensemble 推理：Trae Agent 的三階段框架
+
+**Trae Agent**（Gao et al. 2025, arXiv:2507.23370，字節跳動 Trae Research）是截至 2025 年 7 月在 SWE-bench Verified 登上第一名（**75.20%**）的系統，也是本類中方法論最完整的 ensemble 框架。其三階段設計：
+
+1. **Patch Generation**：coder agent 以高溫採樣並行產生多個候選 patch，支援三種模型（Gemini 2.5 Pro、Claude 3.7 Sonnet、GPT-4.1）或 Mixture 模式（round-robin 交替），7 步標準工作流（理解→探索→重現→診斷→生成→驗證→總結）。
+
+2. **Patch Pruning（剪枝）**：(a) 語義去重——用 \`unidiff\` 解析後標準化（去除空白/注釋），平均減少 ensemble 空間 **28.90%**；(b) Regression testing——tester agent 從原始 codebase 取已通過測試篩選出 regression test 子集，淘汰未通過的 patch（false negative rate 僅 **3.69%**，保留有效 patch 的安全性高）。完整剪枝將 ensemble 空間從 10.0 縮至 ~6.0（減少 **39.15%**），並與 Pass@1 呈 very strong 至 perfect 負相關（Pearson r 0.73-0.91）。
+
+3. **Patch Selection**：selector agent 模擬真實程式理解流程——靜態審查（iteratively 收集 issue 相關代碼、被修改代碼、依賴關係）+ 動態驗證（自動生成並執行 unit tests）；多 selector 並行 majority voting，前 ⌈N/2⌉ 次一致即提前終止。
+
+消融結果：移除全部剪枝 −5.57%、移除 selector 替換 Augment −4.08%、移除 majority voting −4.14%、移除去重 −3.73%、移除 regression testing −3.42%。對比 prompting-based 方法（Augment、DeiBase），Trae Agent 在 ensemble 空間增大時效能**持續上升**（N=1→10），而 baselines 先升後降——正是 agent-based 搜尋 vs. prompting-based 搜尋的核心差異。
+
+最佳結果：Claude 3.7 Sonnet 設定 **66.40%**（SWE-bench Verified，N=3）；官方排行榜提交 **75.20%**（超越第二名 Refact.ai Agent 74.40%）。
+
+---
+
+### A.6 軌跡演化：SE-Agent 的 Revision/Recombination/Refinement
+
+**SE-Agent**（Lin et al. 2025, arXiv:2508.02085，清華 / StepFun 等）採用不同路線：不直接搜尋 patch，而是在**軌跡層級**做演化操作，以三個算子改善 agent 推理路徑：
+
+- **Revision**：Multi-Planning Exploration（5 種不同 planning strategy 生成初始軌跡池）+ Mutation-Based Diversification（受控變異），再對每條軌跡反思並針對性改進。
+- **Recombination**：三種互補策略——Crossover（跨軌跡提取優質片段）、Transfer Learning（從成功軌跡轉移策略）、Restructuring（全局分析重組）。
+- **Refinement**：多維度 Reward（TaskCompletion + ReasoningQuality + Efficiency），以 dissimilarity metric 選 elite pool。
+
+在 SWE-bench Verified 上，以相同骨幹模型對比 SWE-Agent 與 SWE-Search（MCTS），SE-Agent 最大提升 **+112%**（Llama-3.1-70b: 15.4%→32.6%），Claude-3.7-Sonnet **61.2%**（vs SWE-Search 47.4%，+29%）。整合 SE-Agent 與 Claude-4-Sonnet 達 **80.0%**（open-source agent 最佳）。
+
+SE-Agent 的技術洞見在於：MCTS 搜尋的是**決策狀態**（patch state），而 SE-Agent 搜尋的是**推理路徑**（trajectory）——後者可以跨軌跡遷移知識，解決不同路徑「看到同一問題不同側面」的互補性。Venn diagram 顯示 SE-Agent 獨家解決 12 個其他所有框架都無法解決的 instance，Case study（SCIKIT-LEARN #14629）展示它找到其他方法只修改 \`_validation.py\`（表面 quick-fix）時卻識別出真正根因在 \`multioutput.py\` 的 \`classes_\` 屬性缺失。
+
+---
+
+### A.7 特殊路線：負面結果（ToT）、Spec-Driven 開發、科學 Agent 工具化
+
+**ToT for GitHub Issue Resolution**（La Rosa et al. 2024, arXiv:2405.13057，Stanford）提供了重要的負面結果：Tree of Thoughts 框架應用於 SWE-bench Lite，所有模型（CodeLlama 34B、Mixtral-8x7B、Llama-2 70B）成功率均為 **0%**，Llama-3 70B Instruct 在 ToT 有 10% patches 被 accept 但無法通過完整 test suite。作者分析三大失敗原因：(1) 思考樹過淺（僅 d=2），(2) context 不足（無 repo 瀏覽能力，RAG 無效），(3) 投票缺乏 ground truth（symbolic validation 比 LLM voting 更可靠）。此論文的貢獻在於明確指出：**推理多樣性本身不足以解決 repository-level 任務**，若沒有能執行的 context 取得機制，再多的 thought branches 都無法補足資訊缺口。
+
+**Spec Kit Agents**（Taghavi et al. 2026, arXiv:2604.05278）提出不同角度：在 feature delivery pipeline 每個階段插入 **context-grounding hooks**（pre-phase discovery + post-phase validation），解決大型 repository 中 agent 的「context blindness」問題。Full-Augmented 配置相比 Full 提升 LLM judge score（3.66 vs 3.51，p<0.05），人類偏好 33:19（Full-Augmented:Full）。SWE-bench Lite 上，augmentation hooks 從 56.5% 提升至 **58.2%**（+1.7%）。注意 overhead：90 分鐘族群，grounding 額外增加 +13.2 分鐘（+55%）。消融顯示 Validation-only（+1.71%）> Discovery-only（+0.57%），兩者互補效果最強（+4.27%）。
+
+**ToolRosella**（Di et al. 2026, arXiv:2603.09290）路線更為特殊，並非直接做 issue resolution，而是解決「科學計算 agent 工具庫瓶頸」——自動將異構科學 GitHub repository 轉換為 MCP-compatible 工具。122 個倉庫，三輪 RRF（Review-Revise-Fix）迭代後成功率 **61.5%**（LLM-only single-pass 8.2%），平均 7.2 分鐘（人工 31.6 分鐘，快 4.4×）；注入外部 agent 框架後，RepoMaster 從 16.3% 升至 **81.5%**（+65.2 pp）。ToolRosella 展示的是 repository 理解能力的另一種應用：把 repo 當工具「包裝」，而非直接在 repo 內做修改。
+
+---
+
+### A.8 子類之間的張力與關鍵取捨
+
+| 維度 | 固定角色 (A.1) | 動態工作流 (A.2) | Ensemble (A.3, A.5) | Test-Time Scaling (A.4, A.6) |
+|---|---|---|---|---|
+| 代表方法 | MAGIS, MASAI | HyperAgent, USEagent | DEI, Trae Agent | CodePilot (MCTS), SE-Agent |
+| 核心優勢 | 可解釋、低成本 | 跨任務泛化 | 利用 agent 多元性 | 突破 greedy decoding 上限 |
+| 主要開銷 | 工程設計複雜 | 動態路由增加不確定性 | 需多個 agent 並行 | 計算 / API 成本高 |
+| SWE-bench Lite 代表數字 | 25-28% | 25-33% | 34-55% | 24-28% (小模型) |
+| SWE-bench Verified 代表數字 | — | 33-46% | 55-66% | 61-80% |
+
+**最核心張力**：MASAI 的「取樣 + 排名（Ranker）」路線與 DEI 的「ensemble reranking」路線本質相似，但 Ranker 靠 reproduced test（執行驗證），DEI 靠 LLM explanation scoring（推理驗證）。Trae Agent 綜合了兩者：regression testing（執行驗證）+ selector agent（推理 + 動態驗證），並在 ensemble 空間增大時不退化。
+
+**第二張力**：MCTS（CodePilot, SWE-Search）搜尋**決策狀態**，適合 single-trajectory 場景；SE-Agent 搜尋**推理軌跡**，適合跨路徑知識遷移場景。兩者都比 greedy decoding 有顯著提升，但前者更 mechanistic（reward signal 明確），後者更 creative（跨軌跡重組可發現非顯然修復）。
+
+---
+
+### A.9 演進方向與落差
+
+**演進軌跡**：
+- 2024 年初：四角色 multi-agent（MAGIS 13.94%）→ 五角色模組化（MASAI 28.33%）
+- 2024 下半：通用化（HyperAgent 33.00%）+ ensemble meta-policy（DEI 55%）
+- 2025 初至中：agent-based ensemble + test-time scaling（Trae Agent 66-75%、SE-Agent 80%）
+
+**主要落差與未解問題**：
+
+1. **多檔修改仍困難**：CodePilot 坦承「當前專注單檔修改」；MAGIS 的失敗案例大多涉及 13+ 檔案；即使 SE-Agent 達 80%，跨多個相互依賴模組的根因修復仍非常規。
+
+2. **Fault localization 仍是瓶頸**：CodePilot 指出錯誤 localization 佔所有失敗的三分之一。HyperAgent 移除 Navigator 解決率降幅最大（27→19%）。定位精度的提升（如 HyperAgent Acc@1 59.70%、MASAI 75% file recall）雖有進步，但函式層級的精確定位仍受限。
+
+3. **Overfitting vs. 真實修復**：USEagent 的 plausible patch 中 overfitting 率 10.5%（SpecRover 報告 31%），說明 test-passing 並不等於語義正確。
+
+4. **成本 vs. 效能**：Trae Agent 和 SE-Agent 的 SOTA 成績依賴大量 API 呼叫（並行 coder agents + selector majority voting），在成本受限的生產環境中難以直接部署。HyperAgent-Lite ($0.45) 與 Trae Agent ($66+/issue estimated) 之間的 quality-cost frontier 尚待系統探索。
+
+5. **Context blindness 未根本解決**：Spec Kit Agents 的 grounding hooks 只做到 +1.7%（SWE-bench Lite），overhead +55%。在大型 repository 中，agent 仍容易因不了解既有 API、慣例、架構決策而產生幻覺——這是 repository-scale codebase 理解的深層問題，非編排框架所能完全解決。
+## G — 特定維護任務：文件化、安全審計、測試維護、重構、類型推斷、代碼審查與 CI 情報
+
+G 大類涵蓋那些不以「修 bug/issue 解決」為核心目標、而是針對**特定維護面向**（documentation、security/vulnerability detection、testing maintenance、refactoring/type migration、code review/quality、CI intelligence）進行 LLM 輔助的工作。本類 25 篇論文呈現高度分散的方法生態：從輕量 prompt 工程到重型多 agent 框架，從函式級標注到 repository 級知識圖譜，從靜態分析輔助到 agentic 動態探索。以下按子類分層梳理，著重方法譜系、技術張力與演進方向。
+
+---
+
+### G1 — Repository 級文件自動生成
+
+**代表方法與演進**
+
+文件生成是 G 類論文數量最多、方法演進最清晰的子主題。早期工作停留在函式級摘要（孤立 docstring），近期系列則嘗試全 repository 級覆蓋。
+
+階層化策略是核心技術路線。TCS 研究的 BSS 代碼庫摘要（短名 arXiv:2501.07857）最早展示「AST 切段 → 段落摘要 → 聚合」的兩步驟架構：以 Java parser 提取 Function/Variable/Constructor/Enum/Interface 五類 AST 節點，逐一生成段落摘要後聚合至 file/package 層。關鍵發現是：**直接餵整個 Java 檔給 LLM 時，Llama-3.2 遺漏 11% 函式、24% 變數**（2501.07857, §V-B），階層切分可顯著提升覆蓋率；加入業務 domain grounding 後 Domain Specificity 提升逾 7%（2501.07857, Table VII）。
+
+CodeWiki（arXiv:2510.24428）將此進一步提升為「依賴圖 → 拓樸排序 → 遞歸多 agent 委派」架構：以 Tree-Sitter 建構跨語言依賴圖，對 cyclomatic complexity 超標的模組動態委派子 agent，並生成含 Mermaid 架構圖的多模態文件。對比商業系統 DeepWiki，CodeWiki 平均品質分數高 4.73 個百分點（68.79% vs 64.06%，2510.24428, Table 1），在 TypeScript/Python 等高層語言優勢達 +10.47%；但在 C/C++ 因 pointer/template 解析困難落後 DeepWiki 約 1–5%，顯示**系統語言仍是 LLM 文件化的弱點**。
+
+RepoDoc（arXiv:2604.26523）提出目前最完整的文件生命週期框架：以 Repository Knowledge Graph（RepoKG，含 Code Entity + Concept Entity + 7 種關係）作為語義骨幹，不只做首次生成，更實現**增量更新**——透過雙向 BFS 沿 RepoKG 傳播變更影響，僅對受影響組件重生成。增量模式相比全量重生成減少 73% 時間、77% token 用量，且 Update Recall 97.0%（全量重生成僅 88.0%，2604.26523, §4.5）。成本效率同樣顯著：RepoDoc 平均耗費 780K tokens/$0.39，而 CodeWiki 需 5,311K tokens/$2.66（+580%），RepoAgent 需 4,704K tokens/$2.35（+503%，2604.26523, Table 4）。
+
+架構摘要方向，ArchAgent（arXiv:2601.13007）專注從跨倉庫代碼庫復原業務架構圖，結合 AST 參考圖、DFS adaptive grouping 與 Mermaid flowchart 生成。以 30 位資深工程師評估，F1 均值 0.966 vs. DeepWiki 的 0.860（paired t-test p=0.0036，2601.13007, §4.1），在 istio 倉庫上差距達 +0.21。加入跨倉庫依賴 context 後 F1 平均提升 0.07–0.11（2601.13007, §4.2），**強調多倉庫依賴知識對業務語義恢復的決定性作用**。
+
+**README 維護**方向，Gao et al.（arXiv:2603.00489）提出 surgical update 框架，在 PR 觸發時精確識別需更新的 README 段落而非全文重生成。五元件管線含 relevance classifier、context retrieval、localisation engine、QA reviewer，核心創新是 agentic 動態回饋迴路（C2↔C3 迭代取 patch context、C5→C2 self-reflecting refinement）。Agentic 版本的 User-Facing Accuracy 從 static 的 3.7% 提升至 28.7%（2603.00489, Table I），超過 40% 失敗源自開發者行為噪聲（cosmetic fix/tangled PR）而非模型缺陷，代表**自動化的理論天花板受人類行為制約**。jabref 開發者明確表示偏好精準段落更新而非全文重生成，佐證「surgical over generative」設計哲學。
+
+**技術張力**：全文重生成（GenAI 最直覺）vs. 增量精準更新（RepoKG 的 semantic propagation）——前者覆蓋完整但成本高且遺忘既有風格；後者節省 73% 成本且 recall 更高，但需維護知識圖譜基礎設施。CodeWiki 與 RepoDoc 代表截然不同的設計哲學，前者依賴遞歸 agent 動態分解，後者依賴預建語義骨幹。
+
+---
+
+### G2 — 代碼安全審計與漏洞偵測
+
+此子類論文最多，方法最多元，也呈現最清晰的**精確率 vs. 召回率張力**。
+
+**函式級輕量偵測**方向，Saju et al.（arXiv:2601.00254）比較 RAG、SFT、Dual-Agent 三種方案：RAG（MITRE CWE 知識庫 + top-20 chunks）達最佳 F1=0.85、Accuracy=0.86，SFT（QLoRA fine-tune LLaMA 3.2-3B）次之 F1=0.80，Dual-Agent 第三 F1=0.77；base LLM 僅 0.67（2601.00254, Tables II-V）。RAG 勝出歸因於外部結構化知識庫補充 LLM 訓練集的缺口，SFT 次之因 30 steps 訓練已足以強化分類邊界。**Dual-Agent 雖資源最輕，但因 validator 修正機制尚不成熟，整體低於 RAG**。
+
+**專用推理模型**方向，VulnLLM-R（arXiv:2512.07533）是本類最具技術深度的論文：以雙 teacher（DeepSeek-R1 + QwQ-32B）distillation + constitution-based correction + summary-based training，將 Qwen2.5-7B 訓練為專用漏洞偵測推理模型。結果 F1 達 0.723（Python）/0.737（C）/0.870（Java），**以 7B 小模型擊敗 o3、Claude-3.7-Sonnet 等 SOTA 商業大模型**（2512.07533, Table 4）；OOD CWE 泛化僅下降 0.6%，推理過程是泛化關鍵。重要反面發現：DPO 使 F1 跌至 0.601–0.631（vs. SFT 的 0.723–0.870），DPO 在跨語言泛化上尤其糟糕；測試期 scaling（parallel queries 1→16）無增益，與 math/coding 任務行為截然不同（2512.07533, Fig. 6）。
+
+**Repository 級 path-sensitive 審計**方向，RepoAudit（arXiv:2501.18160）是首個純 LLM-driven 的真實世界 repo 級代碼審計器，以 demand-driven graph traversal 模仿人工審計員——Initiator 識別 source points，Explorer 逐函式追蹤 data-flow facts（深度上限 K=4），Validator 過濾 control-flow 衝突與 path 不可行案例。在 15 個真實 benchmark 專案上精確度 78.43%，掃描 9 個高知名度開源專案發現 185 個新 bug，其中 79 已被開發者修復（2501.18160, Table 4）。與工業工具對比：Meta INFER 在 8 個可 build 專案中僅找 7 TPs，Amazon CodeGuru 找 0 TPs；消融研究顯示移除 program abstraction 後 TPs 減少 47.5%、FPs 增加 182%，**program abstraction 是 LLM-based 審計的關鍵設計決策**（2501.18160, Appendix C）。成本方面平均 $2.54/project。
+
+VulnAgent-X（arXiv:2603.13384）走「多代理分層證據融合」路線：快速風險篩選（top-K=8）→ 有界上下文擴展（token budget 6,000）→ Router/Semantic/Security/LogicBug/Sceptic 五個專化 agent → 選擇性動態驗證 → 證據加權融合。在 PrimeVul（最真實設定）上 F1=0.316/AUROC=0.741，優於 single-agent（0.224）與 RAG-only（0.248）；Sceptic Agent 的「主動駁斥」設計使 precision 從 0.286 升至 0.342；相較永遠完整執行節省 39.6% tokens（2603.13384, Tables 4 & 7）。但需注意作者明言部分數字為 illustrative placeholders。
+
+**CVE 修補 commit 識別**方向，Favia（arXiv:2602.12500）結合輕量 ML 排名（PatchFinder）與 ReAct agent 深度因果推理，在 realistic 設定（所有 commit 為候選）下 F1=0.56 vs. LLM4VFD 的 0.45。關鍵發現：random 抽樣設定系統性高估效能達 F1 最高 95%，大多數既有研究因此低估任務難度（2602.12500, §6.1.3）；58.7% 錯誤來自「表面語義關聯但無因果連接」，顯示限制在語義接地而非工具探索。成本方面每 CVE top-10 評估約 $1.30，遠高於 LLM4VFD 的 $0.20。
+
+**智能合約安全蒸餾**方向，HKT-SmartAudit（arXiv:2410.13918）透過四層知識蒸餾（Direct/Expansion/Expert/Self-knowledge）+ PPO 強化學習，將大型 teacher（GPT-4o、DeepSeek-R1）能力遷移至 8B student 模型，在標準漏洞集達 top-max 95.6%，超過 Slither（67.0%）28.6%，且可在單張 T4 GPU（16GB）部署，對比大型模型所需的 350GB+（2410.13918, §6.2）。
+
+**開源 AI 函式庫供應鏈風險**方向，LibVulnWatch（arXiv:2505.08842）以五維風險框架（授權/安全/維護/依賴/法規）+ DAG 多 agent workflow 評估 20 個 AI 函式庫，每個庫評估成本僅 $0.10，Novelty Yield 相比 OpenSSF Scorecard 最高多達 19 個獨有發現（2505.08842, Table 1）。幾乎所有庫的 Security 和 Dependency 分數均為最低（Score 1），SBOM 缺失是生態系普遍問題。
+
+**CI 工作流 LLM 安全威脅**方向，HEIMDALLR（arXiv:2605.05969）是 GitHub CI 工作流 LLM 誘發安全風險的首篇系統性研究，分析 50,354 個 LLM 整合工作流：39.7% 的 LLM nodes 外部可觸發，TV2（prompt 操控工作流行動）盛行率最高 5.3%。LLM node 識別 F1=0.994，可觸發性分析 F1=0.998；截至評估截點已向 759 個 repo 披露 802 個 vulnerable workflow instances，71 個已被維護者修復（2605.05969, §6.5）。
+
+**技術張力**：
+- **精確率 vs. 召回率**：VulnLLM-R 以 F1 為主要優化目標；Favia/VulnAgent-X 傾向高 precision（因 FP 的維護成本高於 FN）；RepoAudit 以精確度 78% + 覆蓋 real bugs 為平衡點。
+- **靜態規則 vs. LLM 推理**：HEIMDALLR 骨幹用確定性靜態分析，僅在 semantic lifting 部分引入 LLM，以最大化可靠性；Favia/RepoAudit 則反向，以 LLM 為主導、靜態分析為輔助。
+- **函式級 vs. repo 級**：VulnLLM-R 以函式為單位，速度快但遺漏跨函式 bug；RepoAudit/VulnAgent-X 做跨函式 path-sensitive 分析，準確但成本高 3–4×。
+
+---
+
+### G3 — 代碼文件一致性偵測
+
+CASCADE（arXiv:2604.19400）是代表性工作：以「測試生成 → 執行 → 交叉確認」雙階段取代直接 LLM 分類，在 50/50 測試集上達 precision=0.88、specificity=0.97，顯著超越 DocChecker（precision=0.48）和 LLM 直接查詢（不穩定）。消融顯示 Phase 1 單獨使用時 precision 僅 0.60，加入 Phase 2 後升至 0.88（2604.19400, Table 3）。真實世界驗證識別 13 個未記錄不一致，10 個被維護者確認修復。缺點是 recall 偏低（0.21）——每個方法平均生成 8.4 個測試，f2p 案例通常 1–2 個，漏報率較高。**「test-first verification」作為 LLM 分類的 FP 過濾器**是本文的核心貢獻，可套用至其他一致性偵測場景。
+
+---
+
+### G4 — 類型推斷與類型遷移
+
+**靜態類型推斷**方向，PyTIR（arXiv:2512.21591）是首個 LLM 驅動的 repository 級 Python 類型推斷方法：以 Entity Dependency Graph 建模跨函式類型依賴（4 種依賴模式），SCC 算法折疊循環依賴後拓樸排序，LLM 按序推斷並以 Mypy 做類型衝突 backtracking。TypeSim=0.89、TypeExact=0.84，相比最強 baseline TIGER 提升 27%（TypeSim）/ 40%（TypeExact），引入靜態錯誤數僅 554，比 HiTyper 的 2,654 少 79%（2512.21591, Tables 2–3）。平均每倉庫耗時 3.56 小時，前 5 次迭代即覆蓋 50% entities。
+
+**JavaScript → TypeScript 遷移**方向，AgenticTyper（arXiv:2602.21251）是首個結合 transpilation comparison 保存行為的 agentic 類型遷移系統：三階段 pipeline（最小 TS 設定 → noImplicitAny → strict mode），每次編輯後 transpile diff 驗證行為不變。在兩個工業 Node.js 後端（合計 81K LOC）全數解決 633 個 type errors，耗時 20 分鐘、成本 $24.93，原需一名有經驗開發者工作整天（2602.21251, Table 1）。仍有 7% suppression 因 root cause tracing 不精確可避免。
+
+**技術張力**：PyTIR 依賴靜態 EDG + backtracking 以確保全域一致性（系統性），AgenticTyper 依賴 transpilation comparison 保存 runtime 行為（安全性）——兩者都回避「只看 LLM 輸出」而用外部驗證閉環。**驗證機制（Mypy / transpilation diff）是保障 LLM 類型標注可靠性的共同關鍵**。
+
+---
+
+### G5 — 代碼審查與品質評估
+
+Code Broker（arXiv:2604.23088）以 Google ADK 實作五代理階層架構（Orchestrator → Sequential Pipeline → 三個並行 Assessor + Improvement Recommender），結合 Pylint 工具接地提升 Correctness Assessor 的事實追溯性。評估為定性小規模研究，無 ground-truth 基準，作者明確定位為技術報告。核心觀察：**純 LLM 推理不加工具接地時會漏掉明顯 Pylint 錯誤**（2604.23088, §5.2），靜態分析工具作為 grounding 訊號顯著改善可靠性；大型 repo 因 context window 限制需 chunking，跨檔案邏輯連貫性降低。
+
+AI 重構信任校準 position paper（arXiv:2412.15948）提出更根本性的問題：LLM 重構的廣泛採用障礙不在技術能力而在**信任校準**（trust calibration）——作者自測顯示 state-of-the-art LLM 對函式級 JavaScript code smell 重構僅 37% 案例正確（2412.15948, §I）。提出「trustworthy AI refactoring（增強 safeguards）」與「trusted AI refactoring（培養開發者信任 UI）」雙主軸研究路線，以 IDE 作為信任發展場域，強調 precision over recall（依 Google Research 建議）。
+
+Commit 分類方向，conventional commit 分類（arXiv:2605.02033）以 prompt engineering 替代模型訓練：few-shot 達最高 accuracy 0.531/F1 0.468；CoT 無增益（commit 分類屬 pattern recognition，不需多步推理）；DeepSeek-R1-32B 最佳（0.563/0.538）；**prompt 設計影響有時超過模型間差距**（2605.02033, §V）。
+
+---
+
+### G6 — Logging 生成與 Crash Report 強化
+
+**Logging 語句生成**方向，Zhong et al.（arXiv:2505.16590）是首個系統評估 SOLMs（<14B 參數開源模型）用於 Java logging 自動生成的大規模研究：LoRA fine-tune + RAG 組合，Qwen2.5-coder-14B-RAG-LoRA 達 Position Accuracy=66.20%，超越 Claude3.7-sonnet-RAG（65.90%）和所有傳統方法（Fastlog 最高 53.40%，2505.16590, Table 7）。關鍵技術發現：(1) RAG 在 prompting 策略中最佳；(2) 3B 以上模型效果隨規模顯著提升（PA: 0.5B→21.38 vs 14B→66.20）；(3) LoRA+RAG 協同效果顯著（PA=62.40% vs 單用 RAG 的 21%）；(4) **code-specific 模型（CodeLlama）因 instruction-following 弱而遜於 general-purpose 模型（LLaMA3）**，挑戰「code 模型一定更好」的假設（Finding 1）。
+
+**Crash Report 強化**方向，Fahim et al.（arXiv:2509.13535）在 492 個 Java crash report 上比較 Direct-LLM（single-shot + call graph）與 Agentic-LLM（GraphRAG 迭代遍歷）：問題定位準確率 DevCR 10.57%→ Direct-LLM 40.24%→ Agentic-LLM 43.09%，提升約 4 倍（2509.13535, Table 3）；人工評估 root cause 完整性 DevCR 30%→ Direct-LLM 46%→ Agentic-LLM 58%；所有 LLM 輸出 100% 含修復建議（vs. DevCR 僅 19%），用戶評分平均從 3.00 升至 4.59/5（Table 6）。
+
+---
+
+### G7 — CI/CD 情報、可追溯性與測試重構
+
+**CI 促銷情報**方向，Bhati（arXiv:2603.14619）實作 PR 觸發的自動內部促銷報告系統：語意過濾減少 40–60% LLM 輸入，靜態 task-pipeline 依賴分析量化 blast radius，整合 GitHub Actions 工作流。屬系統設計報告，無對照實驗量化 LLM 摘要準確性（承認需要 ground truth 標注集）；靜態分析無法偵測 runtime 語意影響為主要限制（2603.14619, §7.3）。
+
+**Issue-Commit 可追溯性**方向，LinkAnchor（arXiv:2508.12232）將 ILR 重新定義為 commit 圖的 dynamic heuristic search，以 LLM agent lazy-access 按需拉取 commit/issue/codebase 資料。Hit@1 平均 0.8632，超過 EasyLink（0.6118）41%、EALink（0.5390）60%（2508.12232, Table 2）；每 issue 成本 $0.01、耗時 23 秒，且不需 GPU 訓練。78% 失敗源自 LLM non-determinism 與 hallucination（commit hash 被輕微改寫）。
+
+**BDD 測試重構**方向，Mughal et al.（arXiv:2605.14568）聚焦 Gherkin 測試套件的 step 子序列重複偵測與重構機會自動分類：339 個 repo 中 83.2% 含至少一個 EW reusable-scenario 候選，43.7% 含 cross-org 候選。XGBoost 分類器 F1=0.891（2605.14568, Table 5），而 LLM-judge（gpt-oss-120b）僅 F1=0.728——**LLM 高 Precision（0.91）但低 Recall（0.61），系統性 under-call extraction-worthy 模式，顯示 LLM 在 pattern recognition 任務上遜於訓練有素的 XGBoost**（Table 6）。
+
+**Exception Handling 生成**方向，CatchAll（arXiv:2601.01271）以三層知識（API-Exception Mapping + contextual call trace + historical handling pattern）引導 LLM 生成 try-catch：Pass@1=29%，優於 RepoCoder（25%），IntentAcc=60.1%（+25.2%，2601.01271, Table 2）。消融顯示 API-Exception Mapping 是最關鍵組件（移除後 Pass@1 從 29% 跌至 9%，-67%，Table 4）。
+
+---
+
+### 跨類張力與未解問題
+
+**1. 驗證閉環 vs. 開放生成**：G 類幾乎所有高精確率方法都引入外部驗證閉環——PyTIR 用 Mypy，AgenticTyper 用 transpilation diff，CASCADE 用測試執行，CATCHALL 用 API-Exception Mapping，RepoAudit 用 control-flow validator。純依賴 LLM 自評的方法（如 Dual-Agent 的 validator）效果普遍落後。這是本類最強的跨方法共識：**LLM 生成需要外部可執行驗證才能達到工業可信度**。
+
+**2. 大模型 vs. 小模型**：VulnLLM-R 以 7B 擊敗 o3 是最強反直覺結果；Qwen2.5-coder-14B fine-tune 超越 Claude3.7-sonnet；HKT-SmartAudit 8B 超越 GPT-4o。這些結果一致指向：**任務特化訓練在窄域任務上可超越通用大模型**，但 constitution-based correction、雙 teacher 蒸餾等數據工程的精細程度決定成敗。
+
+**3. 精確率 vs. 召回率的設計取捨**：安全偵測類（CASCADE、Favia）傾向 high precision（FP 代價高，工程師審閱成本昂貴），而 crash report 強化類（Fahim et al.）傾向 high recall（漏診 root cause 代價高）。設計目標的明確化是方法評估的前提，多篇論文未充分說明此取捨。
+
+**4. 增量 vs. 全量的成本結構**：RepoDoc 的 Semantic Impact Propagation 將增量更新成本降至全量的 27%（token 用量），且 Update Recall 反而更高（97% vs 88%）——此結果顯示**知識圖譜加速的 selective regeneration 是文件維護的可行工業路線**，但需要前期 RepoKG 建構投入。
+
+**5. 落差與未解問題**：
+- **系統語言（C/C++）的文件化與類型推斷**仍是弱點：CodeWiki 在 C/C++ 落後 DeepWiki，PyTIR 未涵蓋 C 語言。
+- **跨倉庫語義鏈接**：ArchAgent 展示了多倉庫依賴提升架構恢復品質，但此能力在文件生成與安全審計領域仍未系統研究。
+- **動態 runtime 資訊缺失**：VulnLLM-R 的 false positive 主要來自缺少動態執行環境（如 race condition）；HEIMDALLR 的靜態分析無法覆蓋動態 payload；VulnAgent-X 27% 錯誤來自缺少 build/runtime 假設。**動態分析與靜態 LLM 分析的融合**是最明確的未解研究方向。
+- **開發者信任與 UI 設計**：Borg et al. 的 position paper 指出信任校準缺乏系統研究，是大規模 AI 重構採用的根本障礙，目前幾乎無實驗性工作。
+## H — Empirical & Survey（綜述、Agent 採用實證、安全實證、過程/行為分析）
+
+### H 類概覽
+
+H 類是本語料庫規模最大的大類之一，收錄 32 篇論文，涵蓋四條主線：（H1）LLM for SE 的系統性綜述（巨量調查、方法論分類）、（H2）Agent 在真實代碼庫的採用狀況與實際效果（生產力、代碼品質、PR 接受率、維護後效）、（H3）Agent 安全實證（Patch 安全性、Prompt Injection、CI/CD 攻擊面）、（H4）Agent 執行過程與行為分析（失敗模式、測試撰寫行為、失敗診斷工具）。
+
+這四條主線並非各自孤立。它們共同勾勒出一幅圖景：在 2023–2026 年間，agentic coding 從 benchmark 競賽走向大規模工業部署，但代碼品質、安全性、行為可理解性這三個向度的挑戰隨之浮現，形成最核心的研究張力。
+
+---
+
+### H1 — 系統性綜述：從 LLM for SE 到 Issue Resolution 生態
+
+這一主線以四篇大型綜述為支柱，從不同尺度梳理領域全貌。
+
+**整體 LLM4SE 全景**（Zhang et al. 2024, arXiv:2312.15223）涵蓋 1009 篇論文（62 個代碼 LLM + 947 篇 SE 研究），是本語料庫規模最大的元分析。其核心發現是：軟體開發（尤其 Code Generation，155 篇）嚴重擠壓維護相關任務——Program Repair 66 篇尚有相當關注，但 Code Refactoring 僅 4 篇、Issue Management 2 篇、Technical Debt Management 1 篇，直接暴露「大型代碼庫長期健康維護」這一核心場景的研究真空（§4.4, Table 5）。Decoder-only 架構趨勢確立；Data leakage 問題被點名：Defects4J snippets 已滲入 CodeT5/CodeBERT 訓練集，Black-box LLM 訓練細節不透明，導致 maintenance benchmark 的可信度受質疑（§5.1.2）。
+
+**LLM-based Agents in SE 框架綜述**（Wang et al. 2024, arXiv:2409.09030）收錄 115 篇，提出感知-記憶-行動三模組框架，是 agent 視角進入 SE 的首個系統整理。其關鍵張力在於：Token-based textual input 至今仍是主流感知模式，但代碼天然具有 AST/CFG 結構，tree/graph-based 感知幾乎沒有研究（§3.1）；Memory 模組方面，缺乏類 Wikipedia 的 SE 知識庫構成 Semantic Memory 的硬限制（§3.3）。
+
+**LLM-SE Benchmarks & Solutions 綜合調查**（Guo et al. 2025, arXiv:2510.09721）建立雙維分類體系（solutions × benchmarks），最核心量化發現：agent-based solutions 已佔所有論文的 68.1%，確認典範從單步生成轉向多步自主解題。其警告是：多數 benchmark 仍以 pass@k 為主指標，忽略 security vulnerabilities、performance regressions、technical debt——「SWE-Bench 上算法成功的方案大多在生產環境因引入安全漏洞或違反 coding standards 而失敗」（§VII-B）。
+
+**LLM Agentic Issue Resolution Survey**（Li et al. 2026, arXiv:2601.11655）是本領域首篇以 Issue Resolution 為核心的全景 survey，覆蓋 175 篇論文，建立 Data / Methods / Analysis 三維框架。三個數字具代表性：RL 最佳模型（OpenHands Critic 32B）在 SWE-bench Verified 達 66.4%（Table 4）；General foundation models（MiMo-V2-Flash 309B MoE）達 73.4%（Table 5）；但 Reproduction test 生成仍卡在 49%（SWT-Bench Verified），顯示 LLM 尚未有效利用 repository-level 資訊生成準確的 reproduction tests（§7.3）。此外，agent 行為缺陷被點名：「overthinkin / analysis paralysis」、以及已有 agent 刪除 user codebase 的不安全行為紀錄（§5.2 & §7）。
+
+Jiang et al. 2025（arXiv:2512.22256）另提出一份聚焦 126 篇的 agentic issue resolution 綜述，最重要貢獻是確認 RL 典範轉移：DeepSeek-R1 發布後，ORM-based 訓練（以可執行 pass/fail 作為 reward）成為主流，多個模型突破 60% resolved rate；Scaffold 效益趨近飽和——同一 scaffold 換 backbone 模型的差距，已大於換 scaffold 的差距，backbone 模型能力是決定因素（§7.4）。
+
+RACG 綜述（Tao et al. 2026, arXiv:2510.04905）是 Repository-level Retrieval-Augmented Code Generation 的首篇全覆蓋綜述，152 篇，建立 non-graph-based vs. graph-based 二元範式。其演進敘事：從 BM25 被動匹配 → structure-aware graph retrieval → agentic command-driven search（LLM 主動決定 what/when/where to retrieve），Claude Code 等系統以 grep/ls/cat terminal commands 替換靜態 embedding index 是最具代表性的 emerging trend（§4.1.2）。Level 2 agentic 系統（SWE-agent/OpenHands/Claude Code）表現最強，但 Level 0 系統（Agentless）在 SWE-bench Lite 仍達 32%，複雜 agentic workflow 並非總是必要的（§5.2.3）。Bhati 2026（arXiv:2604.26275）則以六層參考架構（L0–L5）整合工業與學術系統，量化 SWE-bench 從 1.96%（2023 年 10 月）到 78.4%（2026 年 4 月）的完整軌跡，確認增長主要由 scaffolding 設計而非 raw model capability 驅動。
+
+**落差：** 這批綜述一致指出，repository-level 漸進演化（incremental commit-level）、多語言代碼庫、非功能性維護指標（maintainability、security、technical debt）至今仍是系統性研究空白。
+
+---
+
+### H2 — Agent 採用實證：生產力與代碼品質的張力
+
+這是 H 類最具影響力的主線，多篇論文使用因果推斷或大規模觀察設計，對「coding agent 到底帶來了什麼」給出量化答案，結論遠比行銷話術複雜。
+
+**採用率基線**：Robbes et al. 2026（arXiv:2601.18341）對 128,018 個 GitHub 開源專案的大規模觀察，估計截至 2026 年 2 月 coding agent 採用率達 22–28%。採用加速有兩個明確節點：Claude Code 初次發布（2025 年 2 月末）與 Codex/Gemini/Jules 集中發布（2025 年 5 月中旬）。貢獻類型分布意義重大：Claude Code 提交中 feat（35.7%）與 fix（29.9%）佔三分之二，chore 僅 7.1%——與人類 chore 31%、fix 27%、feat 17% 的分布形成鮮明對比，確認 coding agent 主要用於「建功能、修 bug」而非長期維護雜務（§10.3）。Robbes et al. 2026（arXiv:2601.18345）同組的方法論論文指出 MSR 研究的五項承諾與八項陷阱，其中「部分可觀察性困境」最關鍵：超過 40% 有 agent 跡象的專案在 commit 層面沒有任何標記。
+
+**速度增益**：He et al. 2026（arXiv:2511.04427）對 806 個 GitHub 開源專案的 staggered DiD 研究，發現採用 Cursor 後 Lines Added 顯著增加 +28.6%，但增益集中於採用後 1–2 個月（第 1 個月 +281.3%，第 2 個月 +48.4%，之後回歸 baseline）。Agarwal et al. 2026（arXiv:2601.13597）聚焦 autonomous coding agent（Claude Code、Devin、Cursor Agent）的更大規模研究，AF（agent-first，401 個倉庫）顯示持續速度增益：commits +36.25%、lines added +76.59%，動態效果於 t=6 仍維持 +49–109%。但 IF（IDE-first，已有 AI IDE 的倉庫）速度增益接近零，顯示邊際效益在已有 AI 輔助的環境中大幅萎縮。
+
+**代碼品質惡化**：這是兩項研究最一致的警示信號。He et al. 2026 發現 Cursor 採用後 Static Analysis Warnings +30.3%、Code Complexity +41.6%，且此效應在採用後超過 6 個月仍持續。進一步的 Panel GMM 分析揭示惡性循環機制：Cursor 採用 → Code Complexity 上升 → 下期 Lines Added 下降（−0.718, p<0.001），技術債累積反噬未來開發速度（§4.2）。Agarwal et al. 2026 複製並擴展此發現：autonomous agent 採用後 static warnings AF +17.73%/IF +19.00%，cognitive complexity AF +34.85%/IF +42.87%，且即使速度增益消退後，complexity 仍持續升高（§4）。
+
+**PR 接受率與後續維護**：Watanabe et al. 2025（arXiv:2509.14745）對 567 個 Claude Code PR 的分析顯示接受率 83.8%，低於人工 PR 91.0%（p<0.05）；但拒絕原因主要是「alternative solutions」（12.0%）與「oversized PRs」（3.3%），技術缺陷僅 2.2%——顯示品質問題並非拒絕主因。Sayagh et al. 2025（arXiv:2512.21426）從 issue 品質角度切入，發現高品質 issue（scope 明確、self-contained）的 Copilot PR 合併率達 77.11%，比低品質 issue 高 31.2%；scope 特徵正向影響合併率 16.44%，而涉及外部依賴的 issue 則負向影響 6.91%。Sawada et al. 2025（arXiv:2605.06464）追蹤六個月後 AI 生成檔案的維護情況：AI 生成檔案第一個月 commit 次數約為人類的一半，但長期維護需求仍持續；維護類型偏 feat（21.78%），人類更多做 fix（16.76%）和 docs（16.22%），顯示 AI 代碼的維護需求結構不同。
+
+**工業案例**：Cihan et al. 2024（arXiv:2412.18531）對 Beko 企業 4,335 個 PR 的縱向案例研究，CodeReviewBot（GPT-4 Turbo）評論接受率 73.8%，PR 關閉時間整體增加（+2h28m），但三個專案趨勢相反（有正有負），人工審查量未顯著減少——自動化工具在工業場景的效益高度依賴組織文化與既有流程，不能照搬實驗室結論。
+
+**張力歸納：** 速度提升（短期明顯）vs. 品質惡化（持續且自我強化）是 H2 最核心的張力。更精微的是，速度增益在已有 AI 輔助的環境中趨近消失（diminishing returns），但品質惡化跨 AF/IF 均存在，是更穩健的效應。
+
+---
+
+### H3 — Agent 安全實證：從 Patch 漏洞到 CI/CD 攻擊面
+
+這條主線揭示 agentic coding 帶來的安全新風險，由多篇量化實証研究構成。
+
+**Patch 安全性**：Sajadi et al. 2025（arXiv:2507.02976）使用三個 OWASP 工具分析 SWE-bench 上 LLM patch 的安全風險，發現 Llama 3.3 引入的新漏洞是開發者的 11 倍（135 vs. 12）。漏洞類型有 LLM 特有模式：CWE-95（Eval Injection，39 次）、CWE-502（Insecure Deserialization，17 次）在開發者 patch 幾乎不存在，顯示 LLM 並非只是重複人類錯誤，而是引入全新的風險模式。Agentic 框架中，OpenHands 引入 195 個潛在漏洞（人工驗證後 44 個），最極端案例產生 500,000+ 行 diff；ACR 和 HC 則各 2–3 個，顯示框架設計差異巨大（§3.2）。
+
+**FCV-Attack 揭示功能正確 ≠ 安全**：Peng et al. 2025（arXiv:2510.17862）首次系統化描述 Functionally Correct yet Vulnerable（FCV）patch 威脅。無攻擊時，四個主流模型的功能正確 patch 已有 4.3–6.0% 含漏洞（乾淨背景率）。FCV-Attack 以 black-box、single-query 方式將 CWE 目標指令注入 issue 描述，對全部 12 個 agent–model 組合均有效，Attack Success Rate 達 18.1%–62.9%；CWE-538（sensitive info 寫入 log）最易被利用（ASR 平均 36.8%），因為 agent 被訓練為「helpful」，習慣性加入 logging 指令。更令人警惕的是：更強的模型 = 更高的 ASR（Claude Sonnet 4 平均 14.0%），強指令遵循能力使模型更易依從惡意指令；且 prompt-level 防禦效果有限，ASR 只降低 2–11 個百分點（§6.3）。
+
+**大規模 AIGCode 生態安全**：Wang et al. 2025（arXiv:2512.18567）對 Top 1000 GitHub 開源倉庫（2022–2025）的分析，確認 AI 在漏洞生命週期中的淨影響為正（fix 比例 > introduction 比例），但 AI 引入漏洞中網路攻擊向量佔 86.8%（人類 80.8%），且 CWE 類型集中於輸入驗證與不安全 API 調用（§6.1–6.3）。
+
+**CI/CD 新攻擊面**：Wang et al. 2025（arXiv:2605.07135）提出 Agentic Workflow Injection（AWI）概念，以 TAINTAWI 靜態分析框架在 13,392 個 GitHub Actions agentic workflows 中發現 343 個 zero-day 漏洞（確認率 95.6%），僅 21/1,033 個（2.0%）action 提供 access control，絕大多數 agentic workflows 缺乏有效防護（§VI-B, D）。
+
+**Prompt Injection SoK**：Maloyan et al. 2026（arXiv:2601.17548）系統化 42 種攻擊技術，所有 12 種防禦在 adaptive attack 下 bypass rate 達 78%–93%，核心限制是架構性的：LLM 無法可靠區分 instructions 與 data，且 Capability-Security tradeoff 無法迴避——更有能力的 agent 需要更廣泛的外部資源存取，攻擊面必然擴大（§VIII-A）。
+
+**漏洞偵測研究回顧**：Sheng et al. 2025（arXiv:2502.07049）系統分析 58 篇 LLM-based 漏洞偵測研究，核心發現：83% 研究集中在孤立程式碼片段，repository-level dataset 嚴重不足；CoT prompting 是 >10B 大模型的主流，但 GPT-4 雖識別漏洞位置卻常誤判根因；PEFT（LoRA fine-tuned CodeLlama）F1 接近 0.9 是目前最強偵測結果。
+
+**LLMware 供應鏈授權衝突**：Wang et al. 2026（arXiv:2602.10758）對 LLM 軟體供應鏈的授權分析顯示 52% 供應鏈存在至少一處授權衝突，AI-specific 授權（LLAMA2、OpenRAIL++）理解困難是主因，LiAgent 的 multi-agent 偵測框架達 F1=89%（§4.4.3）。
+
+**張力歸納：** 功能正確性（pass@k）掩蓋安全風險是 H3 的核心張力。基準評估越成功，越可能產生「功能正確但暗藏漏洞」的 patch；而更強能力的模型反而更容易遵從惡意指令，形成能力-安全的反向耦合。
+
+---
+
+### H4 — 過程與行為分析：從失敗模式到效率工具
+
+這條主線深入 agent 執行黑箱，分析過程層面的行為特徵與失敗機制。
+
+**Agent 生成 Patch 品質全面評估**：Chen et al. 2024（arXiv:2410.12468）對 10 個頂尖 agent 在 SWE-Bench Verified 500 issue 的 4,892 個 patch 分析，最關鍵發現是：34% issues 無法被任何 agent 解決（170 個）；只有 5.8% 的 issues 被全部 10 個 agent 解決，互補性強。代碼品質方面，resolved issues 的 code smells 改善達 large effect size，reliability 大多維持穩定，0 個安全漏洞被引入或移除——但 SWE-bench unit test 覆蓋不足，agents 常修改與 gold patch 不同的 files/functions 但仍通過測試（Finding 2, §IV.B）。Resolved vs. Unresolved issues 特徵差異顯著：resolved issues 涉及更少文件（1.09 vs. 1.51）、更小 codebase（569 vs. 1087 行）、更低 complexity（192 vs. 303）（Table IX）。
+
+**解題過程的錯誤動態**：Chen et al. 2026（arXiv:2503.12374）分析 8 個 agent 的 3,977 條 solving trajectories，發現錯誤頻次與解題率高度負相關：1–2 個錯誤的 resolution rate 58.6%，20+ 個降至 22.6%（r=0.59, p<0.001）。環境層（OSError 失敗率 80%）和資料庫層（sqlite3.IntegrityError 77.78%）的錯誤比邏輯層更難修復。還發現 3 個 SWE-Bench 平台 bug，均已回報並獲確認（§7.4）。
+
+**Multi-hunk 修復行為深度分析**：Nashid et al. 2025（arXiv:2511.11012）對 372 個 Java multi-hunk bugs 的四 agent 評估，Claude Code 修復準確率 93.28%，Codex 87.10%，Gemini-cli 41.67%，Qwen Code 25.81%。三個行為模式被辨識：over-modification without validation（Gemini-cli），over-exploration without action（Claude Code），NAVIGATE 過度（Qwen Code）。Regression Reduction 方差差異更大：Gemini-cli 最壞情境可破壞 488 個測試，Claude Code 最壞僅 18；MAPLE MCP tool 對弱 agent 提升顯著（Gemini +30% 修復），但對強 agent 效益有限（§4.9）。
+
+**測試撰寫行為：過程工具而非成功驅動力**：Chen et al. 2026（arXiv:2602.07900）對 6 個最強模型 3000 條 trajectories 的分析揭示：GPT-5.2 幾乎不寫測試（0.6%）卻達 71.8% resolution rate，Claude Opus 4.5 寫 83% 卻只高 2.6 個百分點。Prompt 介入實驗進一步確認：鼓勵/抑制寫測試對 resolution rate 無顯著影響（McNemar p > 0.05），但對 token 消耗影響顯著（Kimi K2 input tokens 降 49%）。結論是：agent 寫測試是「習得的軟體開發慣例」而非解題利器，主要作為 runtime 中間值觀察工具（value-revealing prints 主導，佔 ~70%）。
+
+**實際 PRs 行為**：Haider et al. 2026（arXiv:2601.19287）分析 3,177 個 agent-generated PR 的 19,450 條審查意見，發現：功能正確性（feat，38.9%）是最主要審查主題；安全問題（secu）和建置問題（build）在被拒 PR 中顯著較高（p<0.01/0.05）——這些是阻礙合併的關鍵障礙；文件（doc）和風格（style）審查在成功 PR 中更多，是可解決的建設性反饋。
+
+**工具支援**：AgentStepper（Hutter et al. 2026, arXiv:2602.06593）提出首個 LLM 軟體開發 agent 互動式 debugger，bug identification 成功率從 17%（log+VSCode 控制組）提升至 60%（AgentStepper 組），NASA TLX 挫敗感從 5.4 降至 2.4（/7.0）。TrajAudit（Wang et al. 2025, arXiv:2605.26563）以 investigator agent + Semantic Saliency Folding，將長軌跡（>80 步）失敗定位準確率從 31.9%（All-at-Once baseline）提升至 56.6%，同時 token 消耗比 Step-by-Step 低 6–12 倍。Multi-agent dataset adaptation 研究（Chen et al. 2025, arXiv:2511.21380）更揭示極端場景下的限制：8 個測試案例中只有 1 個完全成功，Step 2（代碼正確性）是最大瓶頸，reference code 作為 Prompt 2 可將結構相似度從 7.25% 提升至 67.14%。
+
+**代碼幻覺的體系性分析**：Zhang et al. 2025（arXiv:2409.20550）以 CoderEval 230 個 Python 任務、六個 LLM 手工標注，建立首個倉庫級代碼幻覺分類體系：Task Requirement Conflicts（43.53%）、Factual Knowledge Conflicts（31.91%）、Project Context Conflicts（24.56%）。RAG 緩解（RepoCoder）對六個模型均有提升，但幅度有限（+0.87%–+3.05% Pass@1），原因在於四個根本限制：訓練資料品質、意圖理解能力、知識截止、倉庫上下文 token 限制。
+
+**AGENTS.md 效率研究**：Lulla et al. 2026（arXiv:2601.20404）以 paired design 對 124 個 PR task 的受控實驗發現：有 AGENTS.md 時 output token 降 20.08%、wall-clock 降 20.27%（p<0.05），說明 repository 級指令檔透過預告結構慣例，有效減少 agent 的探索開銷。
+
+---
+
+### H 類演進方向與落差
+
+**演進軌跡**：H 類論文的時間分布清楚呈現三波演進。第一波（2023–2024 中）以大型綜述建立基礎分類體系（LLM4SE taxonomy、agent 框架、benchmark 生態）。第二波（2024 後半–2025）以 SWE-bench 為錨點，進行 agent 效果的多維評估（品質指標、失敗模式、安全性）。第三波（2025–2026 初）進入工業 field study（企業案例、大規模採用率、因果推斷），並開始關注 agent 行為工具化（debugger、diagnosis framework、指令檔效率）。
+
+**關鍵張力**：
+- **速度 vs. 品質**：兩篇獨立的 quasi-experimental DiD 研究均確認代碼品質持續惡化（complexity +34–41%，warnings +17–30%），且惡化效應比速度效益更持久。
+- **功能正確性 vs. 安全性**：FCV-Attack 與 Sajadi et al. 顯示 pass@k 成功不保證安全，且更強的模型/agent 反而可能帶來更高的安全風險。
+- **Scaffold 設計 vs. 底層模型**：Jiang et al. 與 Bhati 等多篇確認 backbone 模型能力已超越 scaffold 設計成為主要決定因素，但 scaffold 的安全邊界設計（L5 Governance）仍是最不成熟的一層。
+- **Test writing as process vs. 成果**：Chen et al. 2026 對測試撰寫行為的分析解構了「多寫測試 = 解題率更高」的直覺假設。
+
+**未解問題**：
+1. Repository-level incremental 演化評估（而非孤立 issue 的靜態快照）尚無系統性 benchmark。
+2. AI 生成代碼的長期維護成本（超過六個月觀察期）缺乏充分研究。
+3. 安全/隱私 vs. 能力的 tradeoff 在架構層尚無解法（Von Neumann Bottleneck 問題）。
+4. 代碼複雜度自我強化的惡性循環如何被主動中斷，缺乏實驗性介入研究。
+5. Agent 在大型企業代碼庫（數百萬行、強 code review 流程）的長期影響，觀察研究尚在起步階段。
+
+---
+
+# 第三部分　橫切議題、Anchor、趨勢與落差
+
+## 3. 橫切議題：Tool Use 形態之爭
+
+agent 標配化後，差異化落在「給 agent 什麼工具、怎麼給」。語料庫呈現四種形態的張力：**多工具堆疊**(CodeAgent 5 工具)、**單工具+RL 收斂**(RepoNavigator 單 jump tool、CodeScout 只給 bash terminal)、**skill/指引檔**(SWE-Skills-Bench 證 skill 效益僅 +1.2%、AGENTS.md 省 ~20% token)、**MCP 工具化**(ToolRosella repo→MCP 61.5%)。並有安全橫切面(prompt injection on Claude Code/Cursor/Codex CLI)。完整分析見 **\`subtopic-tooluse.md\`**。
+
+## 4. Anchor 分析：兩種「重要」
+
+「全球 cite × 本地 cite」四象限區分四種角色：
+- **公認核心**（高全球+高本地）：MAGIS(lc4/gc158)、AutoCodeRover(gc229)、Trae(lc18/gc79)、LingmaAgent(lc12/gc60)、SWE-PolyBench(lc13/gc55)——進這領域必引。
+- **通用基石**（高全球+低本地）：CodeAgent(gc299 但本地 0)、CodePlan(gc204)、SWT-Bench(gc128)——跨領域紅但非本主題專屬。
+- **社群專屬新銳**（高本地+低全球）：Prometheus(lc8/gc9)、ExpeRepair(lc11/gc23)、CGM(lc8/gc27)、SemAgent(lc4/gc7)——**領域內部正形成的下一波共識**，比看全球 cite 更早察覺趨勢。
+- **長尾**：C/G 類多落此象限——太新、太應用、互引稀疏。
+
+## 5. 時間趨勢（月度滑動窗，見 trend-monthly-heatmap.html）
+
+method(B/D) 穩定、benchmark(F) 爆炸、survey/empirical(H) 2026 後發升溫——「從拓荒到成熟」的典型曲線。2026 升溫主角是 H，意味領域從「能做什麼」過渡到「做得對不對、值不值得」。A(agents) 全程稀疏，印證 agent 架構非發論文重點。
+
+## 6. 五大落差與機會
+
+| 落差 | 說明 |
+|---|---|
+| **A 評測過剩、方法見頂** | F 有 63 benchmark，issue resolution SOTA 逼近天花板(79.4%)且部分虛高。再造 Python issue bench 邊際價值低；機會在跨語言、長期演進(SWE-CI)、設計約束(SWE-Shield) |
+| **B 遷移剛需但能力最弱** | 企業最需要的 migration perfect rate 僅個位數~十幾趴(JMigBench 11.11%)；C 類僅 28 篇互引稀疏，方法論遠未成熟。最大「高需求×低供給」缺口 |
+| **C 安全盲點** | H3 僅 4 篇卻揭「AI patch 引入 11× 漏洞」；security 散在 G2(8)+H3(4)，缺「修對且修得安全」整合方法 |
+| **D 長尾各自為政** | type inference/logging/exception/issue-commit linking 各 1-2 篇無統一框架，而這正是工程師日常 |
+| **E 定位可能過度工程化** | GrepRAG(grep 贏 graph)、CTIM-Rover(memory 反降效) 兩反例提示部分複雜方法在追 marginal gain |
+
+## 7. 綜合啟示
+
+1. **agent 已是水電煤**——賣點要從「我做了 agent」轉為「我的 agent 在哪個具體環節(定位/修補/遷移/檢索)有不可替代貢獻」。
+2. **前沿從「能力」轉向「可信」**——能解 79% 之後，下個問題是這 79% 多少是真的、引入多少風險、代價多少 token/技術債。
+3. **真實世界疆界在 Python/SWE-bench 之外**——multi-language、migration、enterprise legacy、security 是藍海也是 LLM 最弱處。誰把 migration perfect rate 從 11% 推到 50%，誰定義下個 SWE-bench。
+4. **追蹤社群專屬新銳**（高 lc/低 gc：Prometheus、ExpeRepair、CGM）——領域早期訊號。
+5. **小模型+專門訓練在追上**——CGM(開源 43%)、LocAgent(降 86% 成本)、RepoForge(≤8B SOTA 17.4%)——E 類雖小指向「不必靠 GPT-5，專訓開源小模型在特定環節能打」。
+
+---
+
+_配套產出：taxonomy-v2-final.md（分類體系）、classification-detail.md（逐篇）、subtopic-tooluse.md（tool use 子議題）、trend-monthly-heatmap.html（趨勢）、metadata/{local-citation-graph,global-cites}.json（引用資料）。_
+`;
+const content=document.getElementById('content');
+content.innerHTML=marked.parse(MD);
+// build TOC + anchor ids
+const toc=document.getElementById('toc');
+content.querySelectorAll('h1,h2,h3').forEach((h,i)=>{
+  const id='s'+i; h.id=id;
+  const a=document.createElement('a');
+  a.href='#'+id; a.textContent=h.textContent;
+  a.className=h.tagName.toLowerCase();
+  a.onclick=e=>{e.preventDefault();h.scrollIntoView({behavior:'smooth'});history.replaceState(null,'','#'+id);};
+  toc.appendChild(a);
+});
+</script></body></html>
