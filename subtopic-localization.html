@@ -1,0 +1,207 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<title>子議題: localization / 定位</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1c1e22;--mut:#6b7280;--line:#e5e7eb;--accent:#2563eb}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans CJK TC",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.85}
+.layout{display:flex;max-width:1180px;margin:0 auto;gap:24px;padding:24px 20px 80px}
+#toc{position:sticky;top:20px;align-self:flex-start;width:230px;flex-shrink:0;font-size:13px;max-height:90vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+#toc .t{font-weight:700;margin-bottom:8px}#toc a{display:block;color:var(--mut);text-decoration:none;padding:3px 0;line-height:1.4}
+#toc a:hover{color:var(--accent)}#toc a.h1{font-weight:600;color:var(--ink);margin-top:8px}#toc a.h3{padding-left:12px;font-size:12px}
+.content{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 40px 50px}
+.content h1{font-size:26px;border-bottom:3px solid var(--accent);padding-bottom:8px;margin-top:36px}
+.content h2{font-size:21px;margin-top:32px;border-left:4px solid var(--accent);padding-left:12px}
+.content h3{font-size:17px;margin-top:24px;color:#334155}
+.content table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+.content th{background:#eef2f7;border:1px solid var(--line);padding:7px 10px;text-align:left}
+.content td{border:1px solid var(--line);padding:7px 10px;vertical-align:top}
+.content blockquote{border-left:4px solid #fbbf24;background:#fffbeb;margin:14px 0;padding:10px 16px;border-radius:0 6px 6px 0;color:#444}
+.content code{background:#eef0f3;padding:1px 5px;border-radius:4px;font-size:13px;font-family:ui-monospace,monospace}
+.content pre{background:#1e2233;color:#e2e8f0;padding:12px 14px;border-radius:8px;overflow:auto;font-size:12.5px}
+.content pre code{background:none;color:inherit}.content hr{border:none;border-top:1px solid var(--line);margin:30px 0}.content a{color:var(--accent)}
+@media(max-width:820px){#toc{display:none}.content{padding:8px 18px 40px}}
+</style></head><body><div class="layout"><nav id="toc"><div class="t">目錄</div></nav>
+<main class="content" id="content"></main></div>
+<script>
+const MD=`# 子議題：localization / 定位 — 在大型代碼庫裡「找對 code」
+
+> 略讀 + 重點精讀 65 篇（B 類「找對 code」51 篇 + 跨類定位相關 14 篇；44 篇以定位為核心）。資料：\`metadata/_loc/out-*.json\`、\`_agg.json\`。
+> 配套背景：\`subtopic-localization-genealogy.md\`（SBFL→IR→DL→LLM 20 年譜系）；下游關係：\`subtopic-perf-bottleneck.md\`。
+> 引用格式 \`(短名 arXiv:id)\`。⚠ 各篇數字不可嚴格橫比（基準/粒度/k/oracle 設定不同），看的是結構與張力。
+
+---
+
+## 一句話
+
+**「定位」在標準小基準（SWE-bench Lite，11 個 Python repo）的檔案級已接近飽和（94–97%），但這個「解決了」帶三重水分——粒度只到檔案、語言幾乎只有 Python、基準小且重複。一旦下沉到 function/line、換成 C++/Java、或換更大更難的基準，準確度就掉到 40–55%、甚至 13%。定位沒被整體解決，是「檔案級 × Python × Lite」這一格被刷爆了；而且就算定位給對，修對與否才是真瓶頸。**
+
+---
+
+## §0 範圍與語料
+
+65 篇中，定位為核心 44、為元件 14、附帶 6、基準 1。方法家族分布（多標籤）：agent 動態搜索 43、code graph 30、dense retrieval 24、static analysis 20、lexical RAG 16、knowledge graph 4、RL retriever 4。
+
+本文只談 2023–2026 的 LLM 世代方法；它從何而來（頻譜→檢索→學習→LLM）見背景節 \`subtopic-localization-genealogy.md\`。下面八節對應你關心的軸線：評準（§1）、方法譜系（§2）、粒度（§3）、飽和（§4）、規模 confound（§5）、語言（§6）、影響因素（§7）、與修復的關係（§8）。
+
+---
+
+## §1 「定位」到底在定位什麼，評準又怎麼設定
+
+### 1.1 三個粒度層
+
+定位的目標粒度分三層，難度遞增：**檔案（file）→ 函式（function）→ 行（line/statement）**。本語料以函式級最多（33 篇）、檔案級次之（14 篇），行級最少。一篇論文常同時報多個粒度，且**粒度每細一級，數字明顯下滑**（見 §3）。
+
+### 1.2 評準的兩條路
+
+- **內在指標（intrinsic）**：把定位當檢索/排名問題評。最常見 **Acc@k / Recall@k / MRR / MAP / NDCG@k / F1 / Perfect-Recall@k**。「對」的定義幾乎一致——**ground-truth 被改的檔/函式落在 top-k 候選裡**（如 (SGAgent arXiv:2602.23647)：top-5 候選含正解即算 file 命中；(KGCompass arXiv:2503.21710)：top-20 KG+LLM 候選含正解）。
+- **端到端代理（extrinsic）**：不單獨評定位，用最終 resolve rate / Pass@1 反推。LLM 世代越來越走這條，使定位準確度被解題率遮蔽（§8 的伏筆）。
+
+### 1.3 評準的兩個「水分閥」：k 與 oracle
+
+- **k 越大數字越漂亮**：同一套系統，(LocAgent arXiv:2503.09089) 檔案級 **Acc@1 77.74% → Acc@5 94.16%**，光把 k 從 1 放到 5 就多 16.4pp。(SweRank arXiv:2505.07849) 一路報到 Acc@100。**跨論文比「定位準確度」若不對齊 k，等於沒比。**
+- **oracle 設定**：有的給「oracle 定位」測下游、有的測完整定位，兩者不可混。
+
+> **小結（答你「評準怎麼定」）**：定位準確度＝granularity × metric × k × oracle 四維的函數，而這四維沒有統一約定。今天 LLM 報的 Acc@k / MAP / MRR，全是 IR 世代立的尺（見背景節），**沿用了指標卻沒沿用統一的 k 與基準**——這是後面「飽和錯覺」與「不可橫比」的根。
+
+---
+
+## §2 方法譜系與三個張力
+
+LLM 世代的定位方法，沿「靜態索引 ↔ 動態探索」與「通用模型 ↔ 專門訓練」兩軸鋪開：lexical RAG（16）→ dense retriever（24）→ code graph（30）→ knowledge graph（4）→ agent 動態搜索（43）→ RL 訓練 retriever（4）。完整 20 年演進見背景節；這裡只挑三個**有數據的張力**。
+
+### 張力一：相似代碼未必有用，甚至有害
+最直覺的「檢索文字相似的代碼」被多篇打臉。(AllianceCoder arXiv:2503.20589)：當 repo 裡根本沒有功能相似片段時，硬塞相似代碼讓 Pass@1 **掉最多 15%**。(GrepRAG arXiv:2601.23254)：純 \`ripgrep\` 詞彙搜索在 CrossCodeEval 上 EM 即贏過訓練式 RLCoder，且延遲 <0.02 秒。→ **召回「相似」不等於召回「相關」**。
+
+### 張力二：agent vs 專用 reranker——靈活 vs 精準便宜
+agent 型動態搜索（給 LLM 工具自己翻 repo）最多（43 篇），但**專門訓練的 retriever+reranker 往往更準更便宜**：(SweRank arXiv:2505.07849) 檔案級 **Acc@1 83.21%**，超過 agent 型 (LocAgent arXiv:2503.09089) 的 77.74%，且每題僅 **$0.015 vs LocAgent $0.09（1/6 成本）**。LocAgent 自己也靠微調 Qwen2.5-7B 把成本壓到 $0.05、省 86% API 費。→ **agent 贏在泛化與無需訓練，reranker 贏在精度與成本**。
+
+### 張力三：結構深度是雙刃
+code graph 是 B 類技術最密集的子類，但「圖挖多深」有反噬：(RepoGraph arXiv:2410.14684) 1-hop ego-graph 反而**優於** 2-hop（2-hop 引入噪聲）。可另一邊，(KGCompass arXiv:2503.21710) 發現 **89.7% 的 ground-truth bug 函式需要 ≥2 跳**才能到達（74.0% 兩跳、14.4% 三跳）——只有 10.3% 一跳可達。→ **太淺漏掉多跳真兇，太深引入噪聲**，深度本身是要調的超參。
+
+### 旁支：RL 訓練 retriever（小而新）
+真正用 RL 訓定位的只有 4 篇，但效率亮眼：(CodeScout arXiv:2603.17829) 用 Qwen3-14B RL，檔案級 F1 68.57；(RepoNavigator arXiv:2512.20957) 7B GRPO 每題僅 2.68K tokens、**比 LocAgent 便宜 18×**；(AlignCoder arXiv:2601.19697) RL retriever 在 CrossCodeEval Python EM **+18.1%**。→ 定位的 reward 好定義（預測位置 vs gold 位置可確定計算），是 repo-level 少數「純 RL 能成立」的子任務（呼應 \`subtopic-rl-posttraining.md\`）。
+
+---
+
+## §3 粒度的代價：file 易、function 中、line 難
+
+同一套系統內，粒度每細一級就掉一截——這是**系統內對照**，排除了跨論文的不可比：
+
+| 系統 | file | function | line |
+|---|---|---|---|
+| (LocAgent arXiv:2503.09089) | Acc@5 **94.16%** | Acc@10 **77.37%** | — |
+| (CodeScout arXiv:2603.17829) | F1 **68.57** | module 50.88 → func **40.32** | — |
+| (BLAgent arXiv:2605.17965) | Top-1 **86.7%** | Top-1 **72.6%** | — |
+| (ARISE arXiv:2605.03117) | Recall@1 **67%** | Recall@1 **60%** | — |
+| (RepoDebug arXiv:2509.04078) | — | — | ACC_OBL **~24.8%** |
+
+行級最慘：(RepoDebug) 跨 8 語言的 line 定位（ACC_OBL）只有 ~20–25%。
+
+> **小結**：凡是宣稱「定位已解決」的，幾乎都在講**檔案級**。檔案級把模型放進整個 repo 找對檔，已很強；但下游要的是「改哪幾行」，而 function/line 級遠未解決。粒度越細，準確度與 token 成本同時惡化。
+
+---
+
+## §4 飽和是真的嗎？——半真
+
+### 看似飽和（檔案級 × Lite/Verified）
+- (SWE-Adept arXiv:2603.01327)：File Acc@3 **97.0%**、Func Acc@5 87.8%（Claude-Sonnet-4.5）
+- (AOCI arXiv:2605.02421)：檔案級 **97.67%**，距 Oracle 98.33% **僅差 0.66pp**
+- (LocAgent)：Acc@5 94.16%；(Prometheus arXiv:2507.19942)：file hit **91.5%**；(CGM arXiv:2505.16901)：Recall@5 **87%**
+
+這幾個數字確實逼近天花板——**在它們各自的基準與粒度上**。
+
+### 其實沒飽和
+- **粒度往下**（§3）：function/line 還在 40–77%。
+- **換語言**（§6）：(InfCode-C++ arXiv:2511.16005) 檔案級僅 **55.1%**、函式級 42.1%。
+- **換更難基準**：(iSWE arXiv:2603.11356) Java 困難題 resolve 僅 **13.8%**；(DAIRA arXiv:2603.22048) 難題（>1hr）僅 44.4%；(EnvGraph arXiv:2604.03622) 難 repo 僅 21.3%；(RepoNavigator) 開源 7B 函式級 Sample-F1 僅 **27.49**。
+
+> **小結（答你「飽和是真的嗎」）**：飽和是**「檔案級 × Python × SWE-bench Lite/Verified」這一格的局部現象**，不是定位能力整體飽和。把任一維度換掉，天花板立刻塌。
+
+---
+
+## §5 實驗代碼庫規模 ＆「小庫好命中」confound
+
+### 集中度：大家在同一張考卷上刷分
+58 篇 core/component 裡 **31 篇（53%）用 SWE-bench Lite 或 Verified**——也就是同一批 **11 個大型 Python repo**（django / sympy / sphinx / matplotlib / flask / pytest…）。整個子領域的「飽和」很大程度是**同一小基準被反覆刷**的結果。
+
+### 規模實況（你問的「檔案數範圍」）
+- **主流小而集中**：SWE-bench Lite = 300 instances / **11 repos**；候選檔常被預先收窄——(BLAgent arXiv:2605.17965) 每題只給 **≤15 個候選檔**。
+- **也有大的**（但少人用）：(RepoDebug arXiv:2509.04078) 63 repos / 842 files / 39,895 instances；NL-Summary 多 repo bug 定位 (arXiv:2512.05908) 46 repos / ~**1.1M LOC** / 平均每票 7.2 個 buggy 檔；(GrepRAG) CrossCodeEval Python **471 repos**；(KANT arXiv:2508.03340) 單 repo ~3,000 檔。
+
+### confound 的直接證據
+- **候選集越窄、k 越寬，命中越易**——這是機制性的，不全是能力。
+- **Oracle 上界揭穿**：就算把定位「免費給對」，下游也修不動——(SweRank) 給 oracle 定位後 repair **Pass@1 也才 25.9%**；(KGCompass) 的 oracle 上界只有 **60.7%**。
+
+> **小結（答你「小庫是否天生好命中」）**：**你的直覺對。** 高命中率有相當部分來自基準小、repo 重複、候選集窄、k 放寬，而非定位能力本身。判讀任何「定位 X%」務必問：在多大的庫、多少候選、k 多大。
+
+---
+
+## §6 語言差異：Python / Java / C++ 不在同一起跑線
+
+### 語料本身極度偏 Python
+本語料定位論文語言分布：**Python 57**、Java 23、JavaScript 10、TypeScript 9、C/C++ 各 4、Go 4、Rust 3。「定位已解決」幾乎都是**在 Python 語境下**得到的結論。
+
+### 跨語言實測：Python 一枝獨秀
+- (SWE-PolyBench arXiv:2504.08703)：四語言同框，**Python 通過率最高（20–24%）、TypeScript 最弱（5–13%）**；Python 的 file retrieval recall 60.9% 也領先其他語言。
+- (InfCode-C++ arXiv:2511.16005)：C++ 檔案級僅 **55.1%**、函式級 42.1%（遠低於 Python 的 80%+）。C++ 特有結構直接傷定位——**重載識別子（overloaded identifiers）破壞詞彙檢索、巢狀 namespace 增加難度、template 實例化讓結構解析複雜化**。
+- (iSWE arXiv:2603.11356)：Java 困難題 resolve **13.8%**、單函式改動（30.3%）明顯易於跨節點改動。
+- (SweRank) 把定位推到 10 語言，是少數做廣覆蓋的。
+
+> **小結（答你「Python/C/Java 差異」）**：定位在 Python 之外明顯更難，原因疊加——**工具鏈與 AST 解析偏 Python、訓練語料偏 Python、且 C++/Java 的語言結構（重載、namespace、template、型別）本身就讓定位更難**。把 Python 的結論外推到 C++/Java 會嚴重高估。
+
+---
+
+## §7 什麼會影響定位準確度
+
+彙整各篇的因素證據（多為消融或分層數據）：
+
+| 因素 | 證據 |
+|---|---|
+| **跳數（結構距離）** | (KGCompass)：89.7% 的真兇函式需 ≥2 跳（74% 兩跳、14.4% 三跳）；只 10.3% 一跳可達 |
+| **要改的檔/函式數** | (SWE-PolyBench)：1 檔任務 17.7% → 3 檔 8.0% → 5+ 檔 7.9%；(SweRank)：num_gold > 5 時準確度跌到個位數 |
+| **問題描述品質 / 提示** | (SGAgent arXiv:2602.23647)：拿掉 Suggest 模組 resolve 掉 **13.3pp**（51.3→38.0）；(SWE-PolyBench)：給精確 patch 提示時 pass 可達 40–55% |
+| **相似代碼噪聲** | (AllianceCoder)：無功能相似片段時硬塞相似代碼，Pass@1 **−15%** |
+| **結構/圖模組** | (SGAgent)：拿掉 KG 模組 file 準確度 −3.1%；(RepoGraph)：2-hop 反而劣於 1-hop |
+| **語言結構** | (InfCode-C++)：重載/namespace/template 都降定位 |
+| **模型容量** | 大模型整體定位更穩（多篇）；小模型靠 RL 在定位子任務可追上（(CodeScout)、(RepoNavigator)） |
+
+> **小結**：定位難度不是單一變量，而是**結構距離 × 改動範圍 × 描述品質 × 語言 × 模型**的疊加。其中「跳數」與「改動範圍」是最被低估的——它們解釋了為何同一系統在「單檔單函式」題刷到 90%+、在「多檔跨節點」題崩到 10%。
+
+---
+
+## §8 與下游修復的關係：定位不是瓶頸，修對才是
+
+把 §5 的 oracle 實驗拉出來單看：**即使把定位免費給對，最終解題率仍低**——(SweRank) oracle 定位 → repair Pass@1 僅 25.9%；(KGCompass) oracle 定位上界僅 60.7%。這意味著當前端到端卡關**不在「找到 code」，而在「生成正確 patch + 驗證」**。
+
+這與 \`subtopic-perf-bottleneck.md\`「瓶頸從定位位移到修對」從定位側互相印證：定位方法百花齊放、檔案級達 85%+，但最終 resolve 推不過 ~80%。
+
+但要小心兩個 nuance：
+1. **定位是上游，錯了會連鎖**：定位是**必要非充分**——定位錯，下游全錯；定位對，下游未必對。所以「定位飽和」不代表定位可以不管，而是**邊際收益遞減**。
+2. **function/line 級定位仍可能是隱性瓶頸**：oracle 實驗多在**檔案級**給對；若把 oracle 下放到 function/line（§3 顯示這級還沒解決），下游修對率可能還能再升。**真正該投資的是細粒度定位 + 修復的聯合優化**，而非繼續刷檔案級。
+
+---
+
+## §9 啟示與 caveat
+
+### 啟示
+1. **判讀「定位達 X%」必問五件事**：哪個**粒度**（file/function/line）？哪個**基準**？**k** 多大？哪個**語言**？是否 **oracle**？五者不對齊，數字無意義。
+2. **飽和錯覺的三個來源**：粗粒度（只到 file）、單語言（幾乎只 Python）、小而重複基準（53% 擠在同 11 個 Python repo）。
+3. **真正的前沿在四個方向**：function/line 細粒度、跨語言（尤其 C++/Java 的結構難點）、大 repo（千檔級、跨倉微服務）、以及**定位×修復的聯合優化**。
+4. **方法選型**：要泛化/零訓練選 agent 搜索；要精度+低成本選專用 reranker（SweRank 式）；要極致成本效率且有訓練資源，RL retriever（CodeScout/RepoNavigator 式）在定位子任務已可用。
+
+### caveat
+- 數字**不可嚴格橫比**（基準/粒度/k/oracle/語言全不同）——本文正是要說明為何不可比。
+- 抽取以 frag 全文分析為主（少數補 PDF）；個別細節以原論文為準。
+- 方法家族、影響因素為多標籤歸併，一篇常落多類。
+- 「飽和」結論綁定當前基準生態；若出現更難、更大、多語言、細粒度的新基準，結論需重評。
+
+---
+
+_資料：\`metadata/_loc/out-*.json\`、\`_agg.json\`。背景：\`subtopic-localization-genealogy.md\`。下游：\`subtopic-perf-bottleneck.md\`。配套圖（待製）：粒度階梯、飽和×基準難度、語言別準確度。_
+`;
+const content=document.getElementById('content');content.innerHTML=marked.parse(MD);
+const toc=document.getElementById('toc');
+content.querySelectorAll('h1,h2,h3').forEach((h,i)=>{const id='s'+i;h.id=id;const a=document.createElement('a');a.href='#'+id;a.textContent=h.textContent;a.className=h.tagName.toLowerCase();a.onclick=e=>{e.preventDefault();h.scrollIntoView({behavior:'smooth'});history.replaceState(null,'','#'+id);};toc.appendChild(a);});
+</script></body></html>
